@@ -32,3 +32,22 @@ test('defines a single-column mobile contribution overview', () => {
   assert.match(source, /\.fa-contrib-actions\{display:grid!important;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)!important/);
   assert.match(source, /\.fa-contrib-tap-hint\{display:block/);
 });
+
+test('stacks My Contribution with sticky mobile navigation', () => {
+  const source = readSource();
+  for (const hook of [
+    'fa-my-contrib-view',
+    'fa-contrib-overlay-header',
+    'fa-contrib-overlay-kpis',
+    'fa-my-contrib-columns',
+    'fa-my-contrib-primary',
+    'fa-my-contrib-exclusive',
+  ]) assert.match(source, new RegExp(hook));
+
+  assert.match(source, /\.fa-contrib-overlay-header\{position:sticky!important;top:0/);
+  assert.match(source, /\.fa-contrib-overlay-kpis\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)!important/);
+  assert.match(source, /\.fa-my-contrib-columns\{display:grid!important;grid-template-columns:1fr!important/);
+  assert.match(source, /#faContribBack[\s\S]*min-height:44px/);
+  assert.match(source, /function faRememberContributionScroll\(\)/);
+  assert.match(source, /function faRestoreContributionScroll\(\)/);
+});
