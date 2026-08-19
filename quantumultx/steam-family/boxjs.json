@@ -1,0 +1,38 @@
+{
+  "id": "kaaaaai.steam-family-qx.subscription",
+  "name": "Steam 家庭库 QX",
+  "author": "kaaaaai",
+  "repo": "https://github.com/kaaaaai/kaaaaai.tools.scripts",
+  "apps": [
+    {
+      "id": "kaaaaai.steam-family-qx",
+      "name": "Steam 家庭库 QX",
+      "descs_html": [
+        "设置 Steam 家庭库 QX 运行时。完整家庭库数据保存在 Steam 网页 IndexedDB，不保存在 BoxJS。",
+        "维护命令为递增编号；页面确认处理后会更新对应 acknowledgement。"
+      ],
+      "keys": [
+        "kaaaaai.steam-family-qx.settings.autoScan",
+        "kaaaaai.steam-family-qx.settings.storeMarking",
+        "kaaaaai.steam-family-qx.settings.debug",
+        "kaaaaai.steam-family-qx.settings.logLevel",
+        "kaaaaai.steam-family-qx.commands.rescan",
+        "kaaaaai.steam-family-qx.commands.refreshExternal",
+        "kaaaaai.steam-family-qx.commands.clearCache",
+        "kaaaaai.steam-family-qx.acknowledgements.rescan",
+        "kaaaaai.steam-family-qx.acknowledgements.refreshExternal",
+        "kaaaaai.steam-family-qx.acknowledgements.clearCache",
+        "kaaaaai.steam-family-qx.health"
+      ],
+      "settings": [
+        { "id": "kaaaaai.steam-family-qx.settings.autoScan", "name": "自动扫描", "val": true, "type": "boolean" },
+        { "id": "kaaaaai.steam-family-qx.settings.storeMarking", "name": "商店页面标记", "val": true, "type": "boolean" },
+        { "id": "kaaaaai.steam-family-qx.settings.debug", "name": "调试角标", "val": false, "type": "boolean" },
+        { "id": "kaaaaai.steam-family-qx.settings.logLevel", "name": "日志级别", "val": "warn", "type": "text", "desc": "可填写 error、warn、info 或 debug" },
+        { "id": "kaaaaai.steam-family-qx.commands.rescan", "name": "重新扫描命令编号", "val": 0, "type": "number" },
+        { "id": "kaaaaai.steam-family-qx.commands.refreshExternal", "name": "刷新外部数据命令编号", "val": 0, "type": "number" },
+        { "id": "kaaaaai.steam-family-qx.commands.clearCache", "name": "清理缓存命令编号", "val": 0, "type": "number" }
+      ]
+    }
+  ]
+}
