@@ -7,6 +7,8 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const runtimeDir = path.join(root, 'quantumultx/steam-family');
 const sourceDir = path.join(root, 'src/quantumultx/steam-family');
+const rollbackSnippetPath = path.join(runtimeDir, 'rollback/poc-7425947.snippet');
+const pinnedPocCommit = '7425947';
 const rawProjectPath = '/kaaaaai/kaaaaai.tools.scripts/';
 const credentialName = '(?:passphrase|p12|password|passwd|token|access[_-]?token|refresh[_-]?token|api[_-]?key|authorization|client[_-]?secret|private[_-]?key|subscription[_-]?url)';
 const secretAssignment = new RegExp(
@@ -184,6 +186,13 @@ test('canonical and compatibility snippets stay byte-identical and the installed
   const line = 'https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/quantumultx/steam-family/steam-family-poc.snippet, tag=Steam家庭库POC, update-interval=86400, opt-parser=false, enabled=true';
   assert.equal(compatibility, canonical);
   assert.ok(readme.split('\n').includes(line), 'README must retain the installed compatibility resource line');
+});
+
+test('rollback snippet pins its response script to the verified POC commit', () => {
+  assert.equal(fs.existsSync(rollbackSnippetPath), true, 'rollback snippet must exist');
+  const snippet = fs.readFileSync(rollbackSnippetPath, 'utf8');
+  assert.match(snippet, new RegExp(`https://raw\\.githubusercontent\\.com/kaaaaai/kaaaaai\\.tools\\.scripts/${pinnedPocCommit}/quantumultx/steam-family/steam-family-poc\\.js`));
+  assert.doesNotMatch(snippet, /\/main\//);
 });
 
 test('installation documentation describes the production runtime without the diagnostic-only POC module', () => {
