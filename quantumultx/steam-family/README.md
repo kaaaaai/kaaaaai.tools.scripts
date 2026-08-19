@@ -41,7 +41,7 @@ Add this BoxJS application subscription, then use its **调试角标** setting t
 enable the diagnostic badge when needed:
 
 ```text
-https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/quantumultx/steam-family/boxjs.json
+https://cdn.jsdelivr.net/gh/kaaaaai/kaaaaai.tools.scripts@main/quantumultx/steam-family/boxjs.json
 ```
 
 ## Runtime status and diagnostics

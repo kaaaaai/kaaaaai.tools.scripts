@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const boxjsPath = path.resolve(__dirname, '..', 'quantumultx/steam-family/boxjs.json');
+const installUrl = 'https://cdn.jsdelivr.net/gh/kaaaaai/kaaaaai.tools.scripts@main/quantumultx/steam-family/boxjs.json';
 const expectedKeys = [
   'kaaaaai.steam-family-qx.settings.autoScan',
   'kaaaaai.steam-family-qx.settings.storeMarking',
@@ -29,5 +30,16 @@ test('BoxJS metadata exposes only the documented QX controls', () => {
   assert.deepEqual(app.settings.map((setting) => setting.id), expectedKeys.slice(0, 7));
   for (const setting of app.settings) {
     assert.doesNotMatch(setting.id, /token|cookie|password|passphrase|p12|authorization|subscription/i);
+  }
+});
+
+test('public install documentation uses the BoxJS-compatible JSON transport', () => {
+  for (const readmePath of [
+    path.resolve(__dirname, '..', 'README.md'),
+    path.resolve(__dirname, '..', 'quantumultx/steam-family/README.md'),
+  ]) {
+    const readme = fs.readFileSync(readmePath, 'utf8');
+    assert.match(readme, new RegExp(installUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.doesNotMatch(readme, /raw\.githubusercontent\.com\/kaaaaai\/kaaaaai\.tools\.scripts\/main\/quantumultx\/steam-family\/boxjs\.json/);
   }
 });
