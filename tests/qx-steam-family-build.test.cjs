@@ -28,6 +28,19 @@ function runTemporaryBuild(temporaryRoot) {
   });
 }
 
+function snapshotPublishedFiles(temporaryRoot) {
+  const publishedRoot = path.join(temporaryRoot, 'quantumultx/steam-family');
+  const releaseRoot = path.join(publishedRoot, 'releases/0.1.0');
+  return Object.fromEntries([
+    'injector.js',
+    'runtime-asset.js',
+    'bridge.js',
+    'manifest.json',
+    '../../steam-family.snippet',
+    '../../steam-family-poc.snippet',
+  ].map((name) => [name, fs.readFileSync(path.join(releaseRoot, name))]));
+}
+
 test('release metadata is the authoritative complete runtime contract', () => {
   const release = JSON.parse(fs.readFileSync(path.join(root, 'src/quantumultx/steam-family/release.json'), 'utf8'));
   assert.deepEqual(release.hosts, expectedHosts);
@@ -92,4 +105,20 @@ test('build emits a self-consistent release and stable snippets', () => {
   assert.match(canonical, /releases\/0\.1\.0\/injector\.js/);
   assert.match(canonical, /script-echo-response .*releases\/0\.1\.0\/runtime-asset\.js/);
   assert.match(canonical, /script-echo-response .*releases\/0\.1\.0\/bridge\.js/);
+});
+
+test('a published release cannot be overwritten with different bytes under the same version', () => {
+  const temporaryRoot = temporaryBuildRoot();
+  const firstBuild = runTemporaryBuild(temporaryRoot);
+  assert.equal(firstBuild.status, 0, firstBuild.stderr);
+  const before = snapshotPublishedFiles(temporaryRoot);
+
+  const runtimeSource = path.join(temporaryRoot, 'src/quantumultx/steam-family/page-runtime.js');
+  fs.appendFileSync(runtimeSource, '\n// changed without a release bump\n');
+  const secondBuild = runTemporaryBuild(temporaryRoot);
+
+  assert.notEqual(secondBuild.status, 0);
+  assert.match(secondBuild.stderr, /FA_QX_RELEASE_IMMUTABLE/);
+  const after = snapshotPublishedFiles(temporaryRoot);
+  assert.deepEqual(after, before);
 });
