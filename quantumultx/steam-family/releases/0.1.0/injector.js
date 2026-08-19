@@ -3,10 +3,10 @@
   var headers = typeof $response !== 'undefined' && $response && $response.headers ? $response.headers : {};
   var contentType = String(headers['Content-Type'] || headers['content-type'] || '');
   var html = /text\/html|application\/xhtml\+xml/i.test(contentType) || /<(?:!doctype\s+html|html|head|body)\b/i.test(original);
-  var marker = 'data-fa-qx-bootstrap="5170478d4143"';
+  var marker = 'data-fa-qx-bootstrap="5138643bdbed"';
   var body = original;
   if (html && original.indexOf(marker) === -1 && /<\/body\s*>/i.test(original)) {
-    var src = '/fa-qx/v1/runtime.js?release=0.1.0&build=5170478d4143';
+    var src = '/fa-qx/v1/runtime.js?release=0.1.0&build=5138643bdbed';
     var payload = '<script ' + marker + ' src="' + src + '"></script>';
     body = original.replace(/<\/body\s*>/i, payload + '</body>');
   }
