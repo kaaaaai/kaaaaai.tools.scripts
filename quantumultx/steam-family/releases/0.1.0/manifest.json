@@ -4,16 +4,16 @@
   "schema": 1,
   "indexSchema": 1,
   "routePrefix": "/fa-qx/v1",
-  "buildId": "0b8a665af6fc",
+  "buildId": "05ca1af6c3f8",
   "assets": {
     "injector.js": {
-      "sha256": "bf1b95a7bd2a059a7c9937232c19f46ec598651f4a4e1353b7c80869b4996eea"
+      "sha256": "b6d3a7307f6ec80bb673bd89defe0a4950bd950be9905e078f40e600e00e8943"
     },
     "runtime-asset.js": {
-      "sha256": "359f204d3e7118fb61af52c95e7baee2eb0ecf3851fc3ee216d690796d764145"
+      "sha256": "507c9e7ece771cf4abafd16f0f1b005f4e5387f79ccebc88bbd5ce1c3720165f"
     },
     "bridge.js": {
-      "sha256": "0c429ec3476b6899ac906b8ae1dd39f08e82abf81a5e4e9e832ed145c8abc2b2"
+      "sha256": "e5fd318c45a1cfab78be0db8d160997be9dbafdc7670a83b04a9a2cc3ddfebd1"
     }
   }
 }

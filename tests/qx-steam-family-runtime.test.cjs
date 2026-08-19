@@ -52,3 +52,35 @@ test('bridge only serves the matching runtime health operation', () => {
   assert.equal(denied.status, 'HTTP/1.1 403 Forbidden');
   assert.equal(JSON.parse(denied.body).error, 'FA_QX_OPERATION_DENIED');
 });
+
+test('bridge rejects malformed JSON', () => {
+  const result = runBridge('{"operation":');
+  assert.equal(result.status, 'HTTP/1.1 400 Bad Request');
+  assert.equal(JSON.parse(result.body).ok, false);
+});
+
+test('bridge rejects mismatched runtime versions', () => {
+  const buildId = runAsset().body.match(/buildId: '([0-9a-f]{12})'/)[1];
+  const result = runBridge(JSON.stringify({
+    operation: 'runtime.health',
+    release: '0.1.1',
+    buildId,
+  }));
+  assert.equal(result.status, 'HTTP/1.1 400 Bad Request');
+  assert.equal(JSON.parse(result.body).error, 'FA_QX_VERSION_MISMATCH');
+});
+
+test('bridge rejects a body whose UTF-8 bytes exceed the limit', () => {
+  const buildId = runAsset().body.match(/buildId: '([0-9a-f]{12})'/)[1];
+  const body = JSON.stringify({
+    operation: 'runtime.health',
+    release: '0.1.0',
+    buildId,
+    payload: { text: '😀'.repeat(131200) },
+  });
+  assert.ok(body.length < 524288);
+  assert.ok(Buffer.byteLength(body, 'utf8') > 524288);
+  const result = runBridge(body);
+  assert.equal(result.status, 'HTTP/1.1 400 Bad Request');
+  assert.equal(JSON.parse(result.body).error, 'FA_QX_BODY_TOO_LARGE');
+});
