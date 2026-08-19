@@ -1,0 +1,19 @@
+{
+  "release": "0.1.0",
+  "coreVersion": null,
+  "schema": 1,
+  "indexSchema": 1,
+  "routePrefix": "/fa-qx/v1",
+  "buildId": "0b8a665af6fc",
+  "assets": {
+    "injector.js": {
+      "sha256": "bf1b95a7bd2a059a7c9937232c19f46ec598651f4a4e1353b7c80869b4996eea"
+    },
+    "runtime-asset.js": {
+      "sha256": "359f204d3e7118fb61af52c95e7baee2eb0ecf3851fc3ee216d690796d764145"
+    },
+    "bridge.js": {
+      "sha256": "0c429ec3476b6899ac906b8ae1dd39f08e82abf81a5e4e9e832ed145c8abc2b2"
+    }
+  }
+}

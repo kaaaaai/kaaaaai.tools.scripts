@@ -1,0 +1,13 @@
+{
+  "release": "0.1.0",
+  "coreVersion": null,
+  "schema": 1,
+  "indexSchema": 1,
+  "routePrefix": "/fa-qx/v1",
+  "preferenceNamespace": "kaaaaai.steam-family-qx",
+  "hosts": [
+    "store.steampowered.com",
+    "keylol.com",
+    "steamdb.keylol.com"
+  ]
+}

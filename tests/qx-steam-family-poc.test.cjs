@@ -75,14 +75,10 @@ test('keeps the diagnostic badge non-interactive and within the safe area', () =
   ));
 });
 
-test('publishes an exact public Quantumult X rewrite snippet', () => {
+test('keeps the legacy POC snippet compatible with the canonical release snippet', () => {
   const snippet = fs.readFileSync(snippetPath, 'utf8');
-  const expected = [
-    'hostname = store.steampowered.com',
-    `^https:\\/\\/store\\.steampowered\\.com\\/(?:\\?.*)?$ url script-response-body ${rawPrefix}quantumultx/steam-family/steam-family-poc.js`,
-    '',
-  ].join('\n');
-  assert.equal(snippet, expected);
+  const canonical = fs.readFileSync(path.resolve(__dirname, '..', 'quantumultx/steam-family/steam-family.snippet'), 'utf8');
+  assert.equal(snippet, canonical);
 });
 
 test('keeps the public POC free of private profile and credential material', () => {
