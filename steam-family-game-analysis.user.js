@@ -2181,7 +2181,7 @@ function faEnrichAppTypes(appIds) {
                         + '<text x="70" y="66" text-anchor="middle" fill="#c7d5e0" font-size="20" font-weight="700">' + members.length + '</text>'
                         + '<text x="70" y="85" text-anchor="middle" fill="#64748b" font-size="10">名成员</text></svg>'
                         + '</div>'
-                        + '<div style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;">' + legendRows + '</div>';
+                        + '<div class="fa-contrib-member-legend" style="flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;">' + legendRows + '</div>';
                 }
                 // ---- 近半年入库增量（最近 6 个自然月，含当月） ----
                 if (hyWrap) {
@@ -2230,6 +2230,12 @@ function faEnrichAppTypes(appIds) {
                 var scroller = panel.querySelector('.fa-panel-content');
                 if (!scroller) return;
                 requestAnimationFrame(function () { scroller.scrollTop = faContributionScrollTop; });
+            }
+            function faResetContributionScroll() {
+                var scroller = panel.querySelector('.fa-panel-content');
+                if (!scroller) return;
+                scroller.scrollTop = 0;
+                requestAnimationFrame(function () { scroller.scrollTop = 0; });
             }
 
             // ===================== v1.75：我的贡献覆盖层渲染 =====================
@@ -2359,12 +2365,14 @@ function faEnrichAppTypes(appIds) {
                         var dateStr = g.time > 0 ? new Date(g.time * 1000).toLocaleDateString('zh-CN') : '未知';
                         var tagColor = g.isExclusive ? '#ff9f43' : '#a78bfa';
                         var tagText = g.isExclusive ? '独占' : g.owners.length + '人共享';
-                        html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'
+                        html += '<div class="fa-contrib-game-row" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'
+                            + '<a class="fa-contrib-game-link" data-fa-appid="' + g.appid + '" href="https://store.steampowered.com/app/' + g.appid + '" target="_blank" style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;color:inherit;text-decoration:none;" onmouseover="this.querySelector(\'[data-fa-game-name]\').style.color=\'#06cfbe\'" onmouseout="this.querySelector(\'[data-fa-game-name]\').style.color=\'#e2e8f0\'">'
                             + '<img data-fa-cover="' + g.appid + '" loading="lazy" src="' + FA_COVER_SVG + '" style="width:32px;height:32px;border-radius:5px;flex-shrink:0;object-fit:cover;background:#1b2838;">'
-                            + '<div style="flex:1;min-width:0;">'
-                            + '<a data-fa-appid="' + g.appid + '" href="https://store.steampowered.com/app/' + g.appid + '" target="_blank" style="font-size:11px;font-weight:600;color:#e2e8f0;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;" onmouseover="this.style.color=\'#06cfbe\'" onmouseout="this.style.color=\'#e2e8f0\'">' + faEsc(g.name) + '</a>'
-                            + '<div style="font-size:9px;color:#64748b;margin-top:2px;">购入于 ' + dateStr + '</div>'
-                            + '</div>'
+                            + '<span style="flex:1;min-width:0;">'
+                            + '<span class="fa-contrib-game-title" data-fa-game-name data-fa-appid="' + g.appid + '" style="font-size:11px;font-weight:600;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;">' + faEsc(g.name) + '</span>'
+                            + '<span style="font-size:9px;color:#64748b;margin-top:2px;display:block;">购入于 ' + dateStr + '</span>'
+                            + '</span>'
+                            + '</a>'
                             + '<span style="font-size:9px;padding:2px 6px;border-radius:3px;background:' + tagColor + '20;color:' + tagColor + ';font-weight:600;flex-shrink:0;">' + tagText + '</span>'
                             + '</div>';
                     });
@@ -2393,12 +2401,14 @@ function faEnrichAppTypes(appIds) {
                     playGames.forEach(function(g) {
                         var gRecent = faFmtHours(g.playtime_2weeks || 0);
                         var gTotal = faFmtHours(g.playtime_forever || 0);
-                        html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'
+                        html += '<div class="fa-contrib-game-row" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'
+                            + '<a class="fa-contrib-game-link" data-fa-appid="' + g.appid + '" href="https://store.steampowered.com/app/' + g.appid + '" target="_blank" style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;color:inherit;text-decoration:none;" onmouseover="this.querySelector(\'[data-fa-game-name]\').style.color=\'#06cfbe\'" onmouseout="this.querySelector(\'[data-fa-game-name]\').style.color=\'#e2e8f0\'">'
                             + '<img data-fa-cover="' + g.appid + '" loading="lazy" src="' + FA_COVER_SVG + '" style="width:32px;height:32px;border-radius:5px;flex-shrink:0;object-fit:cover;background:#1b2838;">'
-                            + '<div style="flex:1;min-width:0;">'
-                            + '<a data-fa-appid="' + g.appid + '" href="https://store.steampowered.com/app/' + g.appid + '" target="_blank" style="font-size:11px;font-weight:600;color:#e2e8f0;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;" onmouseover="this.style.color=\'#06cfbe\'" onmouseout="this.style.color=\'#e2e8f0\'">' + faEsc(g.name) + '</a>'
-                            + '<div style="font-size:9px;color:#64748b;margin-top:2px;">近2周 <span style="color:#06cfbe;font-weight:600;">' + gRecent + '</span> / 总计 <span style="color:#fbbf24;">' + gTotal + '</span></div>'
-                            + '</div>'
+                            + '<span style="flex:1;min-width:0;">'
+                            + '<span class="fa-contrib-game-title" data-fa-game-name data-fa-appid="' + g.appid + '" style="font-size:11px;font-weight:600;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;">' + faEsc(g.name) + '</span>'
+                            + '<span style="font-size:9px;color:#64748b;margin-top:2px;display:block;">近2周 <span style="color:#06cfbe;font-weight:600;">' + gRecent + '</span> / 总计 <span style="color:#fbbf24;">' + gTotal + '</span></span>'
+                            + '</span>'
+                            + '</a>'
                             + '</div>';
                     });
                     html += '</div>';
@@ -2436,12 +2446,14 @@ function faEnrichAppTypes(appIds) {
                     html += '<div class="fa-my-contrib-list" style="flex:1;min-height:0;overflow-y:auto;">';
                     exclusiveDisplay.forEach(function(g) {
                         var dateStr = g.time > 0 ? new Date(g.time * 1000).toLocaleDateString('zh-CN') : '未知';
-                        html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'
+                        html += '<div class="fa-contrib-game-row" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'
+                            + '<a class="fa-contrib-game-link" data-fa-appid="' + g.appid + '" href="https://store.steampowered.com/app/' + g.appid + '" target="_blank" style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;color:inherit;text-decoration:none;" onmouseover="this.querySelector(\'[data-fa-game-name]\').style.color=\'#06cfbe\'" onmouseout="this.querySelector(\'[data-fa-game-name]\').style.color=\'#e2e8f0\'">'
                             + '<img data-fa-cover="' + g.appid + '" loading="lazy" src="' + FA_COVER_SVG + '" style="width:32px;height:32px;border-radius:5px;flex-shrink:0;object-fit:cover;background:#1b2838;">'
-                            + '<div style="flex:1;min-width:0;">'
-                            + '<a data-fa-appid="' + g.appid + '" href="https://store.steampowered.com/app/' + g.appid + '" target="_blank" style="font-size:11px;font-weight:600;color:#e2e8f0;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;" onmouseover="this.style.color=\'#06cfbe\'" onmouseout="this.style.color=\'#e2e8f0\'">' + faEsc(g.name) + '</a>'
-                            + '<div style="font-size:9px;color:#64748b;margin-top:2px;">购入于 ' + dateStr + '</div>'
-                            + '</div>'
+                            + '<span style="flex:1;min-width:0;">'
+                            + '<span class="fa-contrib-game-title" data-fa-game-name data-fa-appid="' + g.appid + '" style="font-size:11px;font-weight:600;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;">' + faEsc(g.name) + '</span>'
+                            + '<span style="font-size:9px;color:#64748b;margin-top:2px;display:block;">购入于 ' + dateStr + '</span>'
+                            + '</span>'
+                            + '</a>'
                             + '<span style="font-size:9px;padding:2px 6px;border-radius:3px;background:#ff9f4320;color:#ff9f43;font-weight:600;flex-shrink:0;">独占</span>'
                             + '</div>';
                     });
@@ -2454,6 +2466,7 @@ function faEnrichAppTypes(appIds) {
                 html += '</div>'; // end 双列面板
 
                 overlay.innerHTML = html;
+                faResetContributionScroll();
 
                 // 绑定返回按钮
                 var backBtn = overlay.querySelector('#faContribBack');
@@ -2484,7 +2497,7 @@ function faEnrichAppTypes(appIds) {
                 overlay.querySelectorAll('img[data-fa-cover]').forEach(function(img) {
                     faLoadCover(img, img.getAttribute('data-fa-cover'));
                 });
-                overlay.querySelectorAll('a[data-fa-appid]').forEach(function(el) {
+                overlay.querySelectorAll('[data-fa-game-name]').forEach(function(el) {
                     var aid = el.getAttribute('data-fa-appid');
                     var info = saves.familyGameList.GameInfo[aid];
                     faLoadGameZhName(el, aid, info ? (info.name || el.textContent) : el.textContent);
@@ -2733,15 +2746,17 @@ function faEnrichAppTypes(appIds) {
                         var overflow = g.owners.length - 4;
                         var tagColor = g.ownerCount >= 4 ? '#2ed573' : (g.ownerCount >= 3 ? '#54a0ff' : '#a78bfa');
                         var dateStr = g.time > 0 ? new Date(g.time * 1000).toLocaleDateString('zh-CN') : '';
-                        html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'
+                        html += '<div class="fa-contrib-game-row" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'
+                            + '<a class="fa-contrib-game-link" data-fa-appid="' + g.appid + '" href="https://store.steampowered.com/app/' + g.appid + '" target="_blank" style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;color:inherit;text-decoration:none;" onmouseover="this.querySelector(\'[data-fa-game-name]\').style.color=\'#06cfbe\'" onmouseout="this.querySelector(\'[data-fa-game-name]\').style.color=\'#e2e8f0\'">'
                             + '<img data-fa-cover="' + g.appid + '" loading="lazy" src="' + FA_COVER_SVG + '" style="width:32px;height:32px;border-radius:5px;flex-shrink:0;object-fit:cover;background:#1b2838;">'
-                            + '<div style="flex:1;min-width:0;">'
-                            + '<a data-fa-appid="' + g.appid + '" href="https://store.steampowered.com/app/' + g.appid + '" target="_blank" style="font-size:11px;font-weight:600;color:#e2e8f0;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;" onmouseover="this.style.color=\'#06cfbe\'" onmouseout="this.style.color=\'#e2e8f0\'">' + faEsc(g.name) + '</a>'
-                            + '<div style="font-size:9px;color:#64748b;margin-top:2px;display:flex;align-items:center;gap:4px;">'
-                            + '<div style="display:flex;">' + ownerAvatars + (overflow > 0 ? '<span style="font-size:9px;color:#8097a8;margin-left:2px;">+' + overflow + '</span>' : '') + '</div>'
+                            + '<span style="flex:1;min-width:0;">'
+                            + '<span class="fa-contrib-game-title" data-fa-game-name data-fa-appid="' + g.appid + '" style="font-size:11px;font-weight:600;color:#e2e8f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;">' + faEsc(g.name) + '</span>'
+                            + '<span style="font-size:9px;color:#64748b;margin-top:2px;display:flex;align-items:center;gap:4px;">'
+                            + '<span style="display:flex;">' + ownerAvatars + (overflow > 0 ? '<span style="font-size:9px;color:#8097a8;margin-left:2px;">+' + overflow + '</span>' : '') + '</span>'
                             + (dateStr ? '<span>· ' + dateStr + '</span>' : '')
-                            + '</div>'
-                            + '</div>'
+                            + '</span>'
+                            + '</span>'
+                            + '</a>'
                             + '<span style="font-size:9px;padding:2px 6px;border-radius:3px;background:' + tagColor + '20;color:' + tagColor + ';font-weight:600;flex-shrink:0;">' + g.ownerCount + '人共享</span>'
                             + '</div>';
                     });
@@ -2764,6 +2779,7 @@ function faEnrichAppTypes(appIds) {
                 html += '</div>'; // end 双列面板
 
                 overlay.innerHTML = html;
+                faResetContributionScroll();
 
                 // 绑定返回按钮
                 var backBtn = overlay.querySelector('#faShareDetailBack');
@@ -2794,7 +2810,7 @@ function faEnrichAppTypes(appIds) {
                 overlay.querySelectorAll('img[data-fa-cover]').forEach(function(img) {
                     faLoadCover(img, img.getAttribute('data-fa-cover'));
                 });
-                overlay.querySelectorAll('a[data-fa-appid]').forEach(function(el) {
+                overlay.querySelectorAll('[data-fa-game-name]').forEach(function(el) {
                     var aid = el.getAttribute('data-fa-appid');
                     var info = saves.familyGameList.GameInfo[aid];
                     faLoadGameZhName(el, aid, info ? (info.name || el.textContent) : el.textContent);
@@ -5429,7 +5445,10 @@ function faEnrichAppTypes(appIds) {
                 + '      <div data-contrib-default class="fa-contrib-default">'
                 // v1.58：三列布局——左侧（加入时间卡片 + KPI 列） | 中间贡献分布柱状图 | 右侧成员占比环形图 + 近半年入库增量（上顶均匀分布）
                 + '      <div class="fa-contrib-layout" style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;align-items:stretch;">'
-                + '        <div class="fa-contrib-summary" style="flex:0 0 148px;min-width:130px;display:flex;flex-direction:column;gap:6px;">' + myJoinHtml + kpiColHtml + '</div>'
+                + '        <div class="fa-contrib-summary" style="flex:0 0 148px;min-width:130px;display:flex;flex-direction:column;gap:6px;">'
+                + '          <div class="fa-contrib-join" style="display:contents;">' + myJoinHtml + '</div>'
+                + '          <div class="fa-contrib-kpis" style="display:contents;">' + kpiColHtml + '</div>'
+                + '        </div>'
                 + '        <div data-chart-bar-card class="fa-contrib-chart-card" style="flex:1 1 380px;min-width:0;position:relative;background:rgba(30,41,59,0.95);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;box-shadow:0 4px 24px rgba(0,0,0,0.35);">'
                 // v1.77：累计总量/近半年切换按钮（仪表卡片右上角，默认累计总量）
                 + '          <div data-contrib-range-toggle class="fa-contrib-range-toggle" style="position:absolute;top:10px;right:12px;display:flex;gap:2px;background:rgba(15,23,42,0.85);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:2px;z-index:5;">' + contribRangeBtnHtml() + '</div>'
@@ -7716,13 +7735,18 @@ function faInjectGlobalStyle() {
         + '#familyAnalysisPanel .fa-tab-pane{max-height:none;padding:10px;overscroll-behavior:contain}'
         + '#familyAnalysisPanel .fa-panel-content{overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch}'
         + '#familyAnalysisPanel [data-fa-tab="contribution"]{overflow:visible!important}'
-        + '#familyAnalysisPanel .fa-contrib-default [style*="overflow-y:auto"],#familyAnalysisPanel .fa-my-contrib-view [style*="overflow-y:auto"]{overflow:visible!important}'
+        + '#familyAnalysisPanel [data-fa-tab="contribution"],#familyAnalysisPanel [data-fa-tab="contribution"] *{box-sizing:border-box!important}'
+        + '#familyAnalysisPanel .fa-contrib-member-legend,#familyAnalysisPanel .fa-my-contrib-list,#familyAnalysisPanel .fa-share-detail-analysis,#familyAnalysisPanel .fa-share-detail-games-list{overflow:visible!important}'
         + '#familyAnalysisPanel [style*="grid-template-columns:repeat("]{grid-template-columns:1fr!important}'
         + '#familyAnalysisPanel [style*="min-width:300px"],#familyAnalysisPanel [style*="min-width:320px"]{min-width:0!important}'
         + '#Family_countChart{width:100%!important;height:auto!important;max-height:55dvh}'
         + '#familyAnalysisPanel .fa-contrib-layout{display:grid!important;grid-template-columns:1fr!important;gap:10px!important}'
-        + '#familyAnalysisPanel .fa-contrib-summary,#familyAnalysisPanel .fa-contrib-chart-card,#familyAnalysisPanel .fa-contrib-side{width:100%!important;min-width:0!important;flex:none!important}'
-        + '#familyAnalysisPanel .fa-contrib-chart-card{padding:12px!important;display:flex!important;flex-direction:column!important;gap:8px!important}'
+        + '#familyAnalysisPanel .fa-contrib-summary{display:grid!important;grid-template-columns:1fr!important;gap:8px!important;width:100%!important;min-width:0!important;flex:none!important}'
+        + '#familyAnalysisPanel .fa-contrib-join{display:block!important;grid-column:1/-1}'
+        + '#familyAnalysisPanel .fa-contrib-join>div{margin-bottom:0!important}'
+        + '#familyAnalysisPanel .fa-contrib-kpis{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}'
+        + '#familyAnalysisPanel .fa-contrib-chart-card,#familyAnalysisPanel .fa-contrib-side{width:100%!important;min-width:0!important;flex:none!important}'
+        + '#familyAnalysisPanel .fa-contrib-chart-card{width:100%!important;padding:12px!important;display:flex!important;flex-direction:column!important;gap:8px!important}'
         + '#familyAnalysisPanel .fa-contrib-chart-card [data-contrib-range-toggle]{position:static!important;align-self:stretch!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;background:transparent!important;border:0!important;padding:0!important}'
         + '#familyAnalysisPanel .fa-contrib-chart-card [data-contrib-range]{min-height:44px!important}'
         + '#familyAnalysisPanel .fa-contrib-side{display:grid!important;grid-template-columns:1fr!important;gap:10px!important}'
@@ -7730,6 +7754,7 @@ function faInjectGlobalStyle() {
         + '#familyAnalysisPanel .fa-contrib-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;width:100%!important}'
         + '#familyAnalysisPanel .fa-contrib-actions .fa-toggle-switch{grid-column:1/-1;min-height:44px}'
         + '#familyAnalysisPanel .fa-contrib-actions .fa-btn-green{width:100%!important}'
+        + '#familyAnalysisPanel #faViewMyContrib{min-height:44px!important;min-width:44px!important}'
         + '#familyAnalysisPanel .fa-contrib-tap-hint{display:block;text-align:center;color:#8097a8;font-size:11px;line-height:1.4}'
         + '#familyAnalysisPanel .fa-contrib-overlay{min-width:0!important;overflow:visible!important}'
         + '#familyAnalysisPanel .fa-contrib-overlay-header{position:sticky!important;top:0;z-index:8;min-height:52px;padding:4px 0;background:rgba(15,23,42,.96);backdrop-filter:blur(10px)}'
@@ -7742,6 +7767,9 @@ function faInjectGlobalStyle() {
         + '#familyAnalysisPanel .fa-my-contrib-exclusive-pager{gap:8px!important;flex-wrap:wrap!important;min-width:0!important;max-width:100%!important;overflow:visible!important}'
         + '#familyAnalysisPanel .fa-my-contrib-exclusive-pager button{min-height:44px!important;flex:0 1 auto;white-space:nowrap}'
         + '#familyAnalysisPanel .fa-my-contrib-view a[data-fa-appid]{white-space:normal!important;overflow-wrap:anywhere}'
+        + '#familyAnalysisPanel .fa-contrib-game-row{min-height:44px!important;gap:8px!important;padding-top:0!important;padding-bottom:0!important}'
+        + '#familyAnalysisPanel .fa-contrib-game-link{min-height:44px!important;min-width:44px!important;white-space:normal!important;overflow-wrap:anywhere}'
+        + '#familyAnalysisPanel .fa-contrib-game-title{white-space:normal!important;overflow-wrap:anywhere}'
         + '#familyAnalysisPanel #faContribBack{min-height:44px!important}'
         + '#familyAnalysisPanel #faExcPrevPage,#familyAnalysisPanel #faExcNextPage{min-height:44px!important}'
         + '#familyAnalysisPanel .fa-share-detail-columns{display:grid!important;grid-template-columns:1fr!important;gap:10px!important;min-width:0!important}'
