@@ -2,11 +2,13 @@
   'use strict';
   if (window.__FA_QX__ && window.__FA_QX__.buildId === '__FA_BUILD_ID__') return;
   function bridge(operation, payload) {
-    return fetch('__FA_ROUTE_PREFIX__/bridge', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json', 'X-FA-QX-Build': '__FA_BUILD_ID__' },
-      body: JSON.stringify({ operation: operation, payload: payload || {}, release: '__FA_RELEASE__', buildId: '__FA_BUILD_ID__' })
+    return Promise.resolve().then(function () {
+      return fetch('__FA_ROUTE_PREFIX__/bridge', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-FA-QX-Build': '__FA_BUILD_ID__' },
+        body: JSON.stringify({ operation: operation, payload: payload || {}, release: '__FA_RELEASE__', buildId: '__FA_BUILD_ID__' })
+      });
     }).then(function (response) {
       if (!response.ok) throw new Error('FA_QX_BRIDGE_HTTP_' + response.status);
       return response.json();
@@ -29,6 +31,7 @@
   }
 
   function renderDiagnostic(config, errorCode) {
+    if (window.__FA_QX__ !== api) return;
     var existing = document.querySelector('#fa-qx-diagnostic');
     if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
     if ((!config || config.debug !== true) && !errorCode) return;
@@ -40,18 +43,23 @@
   }
 
   var api = { release: '__FA_RELEASE__', buildId: '__FA_BUILD_ID__', state: 'starting', bridge: bridge, ready: null };
+  window.__FA_QX__ = api;
   api.ready = bridge('runtime.health', {}).then(validateHealth).then(function () {
     return bridge('config.get', {});
   }).then(function (config) {
-    api.state = 'ready';
-    api.config = config;
-    renderDiagnostic(config, null);
+    if (window.__FA_QX__ === api) {
+      api.state = 'ready';
+      api.config = config;
+      renderDiagnostic(config, null);
+    }
     return api;
   }).catch(function (error) {
-    api.state = 'error';
-    api.error = redactError(error);
-    renderDiagnostic({ debug: false }, api.error);
+    if (window.__FA_QX__ === api) {
+      api.state = 'error';
+      api.error = redactError(error);
+      renderDiagnostic({ debug: false }, api.error);
+    }
     throw error;
   });
-  window.__FA_QX__ = api;
+  api.ready.catch(function () {});
 })();

@@ -275,7 +275,7 @@
   function health() {
     var record = {
       release: '0.1.0',
-      buildId: 'a511148cd961',
+      buildId: '75332714dfcb',
       coreVersion: null,
       schema: 1,
       timestamp: Date.now()
@@ -292,7 +292,7 @@
     if (utf8ByteLength(raw) > 524288) throw new Error('FA_QX_BODY_TOO_LARGE');
     var input = JSON.parse(raw || '{}');
     if (!isObject(input) || !Object.prototype.hasOwnProperty.call(ALLOWED, input.operation)) throw new Error('FA_QX_OPERATION_DENIED');
-    if (input.release !== '0.1.0' || input.buildId !== 'a511148cd961') throw new Error('FA_QX_VERSION_MISMATCH');
+    if (input.release !== '0.1.0' || input.buildId !== '75332714dfcb') throw new Error('FA_QX_VERSION_MISMATCH');
     var payload = input.payload === undefined ? {} : input.payload;
     var data;
     if (input.operation === 'runtime.health') data = health();

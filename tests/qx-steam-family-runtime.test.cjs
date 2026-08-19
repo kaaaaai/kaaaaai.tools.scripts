@@ -34,33 +34,68 @@ function documentStub() {
   const nodes = [];
   const documentElement = {
     appendChild(node) {
+      node.parentNode = documentElement;
       nodes.push(node);
+      return node;
+    },
+    removeChild(node) {
+      const index = nodes.indexOf(node);
+      if (index === -1) throw new Error('node is not a child');
+      nodes.splice(index, 1);
+      node.parentNode = null;
       return node;
     },
   };
   return {
     documentElement,
     createElement() {
-      return { id: '', textContent: '', style: { cssText: '' } };
+      return { id: '', parentNode: null, textContent: '', style: { cssText: '' } };
     },
     querySelector(selector) {
       return selector === '#fa-qx-diagnostic' ? nodes.find((node) => node.id === 'fa-qx-diagnostic') || null : null;
     },
+    diagnosticCount() {
+      return nodes.filter((node) => node.id === 'fa-qx-diagnostic').length;
+    },
   };
 }
 
-function runPageRuntime({ config = { debug: false }, health, fetchImpl } = {}) {
-  const document = documentStub();
-  const window = {};
+function currentBuildId() {
+  return JSON.parse(fs.readFileSync(path.join(releaseDir, 'manifest.json'), 'utf8')).buildId;
+}
+
+function runtimeForBuild(buildId) {
+  return pageRuntime().replaceAll(currentBuildId(), buildId);
+}
+
+function deferred(PromiseImpl = Promise) {
+  let resolve;
+  let reject;
+  const promise = new PromiseImpl((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
+async function waitFor(condition) {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    if (condition()) return;
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+  assert.fail('condition did not become true');
+}
+
+function runPageRuntime({ config = { debug: false }, health, fetchImpl, document = documentStub(), window = {}, runtime = pageRuntime(), PromiseImpl = Promise } = {}) {
   const postedRequests = [];
-  const runtimeHealth = health || { release: '0.1.0', buildId: JSON.parse(fs.readFileSync(path.join(releaseDir, 'manifest.json'), 'utf8')).buildId, schema: 1 };
+  const runtimeHealth = health || { release: '0.1.0', buildId: currentBuildId(), schema: 1 };
   const fetch = fetchImpl || ((url, options) => {
     const request = JSON.parse(options.body);
     postedRequests.push(request);
     const data = request.operation === 'runtime.health' ? runtimeHealth : config;
     return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, data }) });
   });
-  vm.runInNewContext(pageRuntime(), { window, document, fetch, Promise });
+  vm.runInNewContext(runtime, { window, document, fetch, Promise: PromiseImpl });
   return { window, document, postedRequests };
 }
 
@@ -99,6 +134,19 @@ test('page runtime renders a safe-area diagnostic only when debug is enabled', a
   assert.match(badge.style.cssText, /env\(safe-area-inset-bottom\)/);
 });
 
+test('page runtime replaces an existing diagnostic instead of duplicating it', async () => {
+  const document = documentStub();
+  const oldBadge = document.createElement('div');
+  oldBadge.id = 'fa-qx-diagnostic';
+  document.documentElement.appendChild(oldBadge);
+  const { window } = runPageRuntime({ document, config: { debug: true } });
+  await window.__FA_QX__.ready;
+  const newBadge = document.querySelector('#fa-qx-diagnostic');
+  assert.notEqual(newBadge, oldBadge);
+  assert.equal(oldBadge.parentNode, null);
+  assert.equal(document.diagnosticCount(), 1);
+});
+
 test('page runtime redacts rejected health responses in its diagnostic', async () => {
   const responseBody = 'upstream response body must remain private';
   const { window, document } = runPageRuntime({
@@ -114,6 +162,118 @@ test('page runtime redacts rejected health responses in its diagnostic', async (
   assert.ok(badge);
   assert.match(badge.textContent, /FA_QX_BRIDGE_HTTP_503/);
   assert.doesNotMatch(badge.textContent, new RegExp(responseBody));
+});
+
+test('page runtime rejects invalid health without requesting configuration', async () => {
+  const { window, document, postedRequests } = runPageRuntime({
+    health: { release: 'wrong-release', buildId: currentBuildId(), schema: 1 },
+  });
+  await assert.rejects(window.__FA_QX__.ready, /FA_QX_RUNTIME_HEALTH_INVALID/);
+  assert.equal(window.__FA_QX__.state, 'error');
+  assert.equal(window.__FA_QX__.error, 'FA_QX_RUNTIME_HEALTH_INVALID');
+  assert.equal(postedRequests.length, 1);
+  assert.match(document.querySelector('#fa-qx-diagnostic').textContent, /FA_QX_RUNTIME_HEALTH_INVALID/);
+});
+
+test('page runtime redacts a rejected configuration request', async () => {
+  const originalError = new Error('private configuration response');
+  const { window, document, postedRequests } = runPageRuntime({
+    fetchImpl(url, options) {
+      const request = JSON.parse(options.body);
+      postedRequests.push(request);
+      if (request.operation === 'runtime.health') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ ok: true, data: { release: '0.1.0', buildId: currentBuildId(), schema: 1 } }),
+        });
+      }
+      return Promise.reject(originalError);
+    },
+  });
+  await assert.rejects(window.__FA_QX__.ready, (error) => error === originalError);
+  assert.equal(window.__FA_QX__.state, 'error');
+  assert.equal(window.__FA_QX__.error, 'FA_QX_UNKNOWN');
+  assert.deepEqual(postedRequests.map((request) => request.operation), ['runtime.health', 'config.get']);
+  const badge = document.querySelector('#fa-qx-diagnostic');
+  assert.match(badge.textContent, /FA_QX_UNKNOWN/);
+  assert.doesNotMatch(badge.textContent, /private configuration response/);
+});
+
+test('page runtime publishes a rejected startup API after a synchronous fetch failure', async () => {
+  const originalError = new Error('private synchronous fetch failure');
+  let page;
+  assert.doesNotThrow(() => {
+    page = runPageRuntime({ fetchImpl() { throw originalError; } });
+  });
+  const { window, document } = page;
+  assert.ok(window.__FA_QX__);
+  await assert.rejects(window.__FA_QX__.ready, (error) => error === originalError);
+  assert.equal(window.__FA_QX__.state, 'error');
+  const badge = document.querySelector('#fa-qx-diagnostic');
+  assert.ok(badge);
+  assert.equal(document.diagnosticCount(), 1);
+  assert.match(badge.textContent, /FA_QX_UNKNOWN/);
+  assert.doesNotMatch(badge.textContent, /private synchronous fetch failure/);
+});
+
+test('page runtime internally observes rejected startup without changing ready rejection semantics', async () => {
+  class TrackingPromise extends Promise {
+    constructor(executor) {
+      super(executor);
+      this.hasRejectionObserver = false;
+    }
+
+    then(onFulfilled, onRejected) {
+      if (typeof onRejected === 'function') this.hasRejectionObserver = true;
+      return super.then(onFulfilled, onRejected);
+    }
+  }
+  const originalError = new Error('private rejected startup');
+  const startup = deferred(TrackingPromise);
+  const { window } = runPageRuntime({ PromiseImpl: TrackingPromise, fetchImpl() { return startup.promise; } });
+  assert.equal(window.__FA_QX__.ready.hasRejectionObserver, true);
+  const observed = assert.rejects(window.__FA_QX__.ready, (error) => error === originalError);
+  startup.reject(originalError);
+  await observed;
+});
+
+test('a superseded runtime cannot overwrite the current runtime after its health resolves and config rejects', async () => {
+  const oldBuildId = '111111111111';
+  const oldHealth = deferred();
+  const oldConfig = deferred();
+  const oldError = new Error('private old config rejection');
+  const document = documentStub();
+  const window = {};
+  const requests = [];
+  const fetchImpl = (url, options) => {
+    const request = JSON.parse(options.body);
+    requests.push(request);
+    if (request.buildId === oldBuildId && request.operation === 'runtime.health') return oldHealth.promise;
+    if (request.buildId === oldBuildId && request.operation === 'config.get') return oldConfig.promise;
+    const data = request.operation === 'runtime.health'
+      ? { release: '0.1.0', buildId: request.buildId, schema: 1 }
+      : { debug: true };
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, data }) });
+  };
+  const oldPage = runPageRuntime({ window, document, fetchImpl, runtime: runtimeForBuild(oldBuildId) });
+  const oldApi = window.__FA_QX__;
+  const currentPage = runPageRuntime({ window, document, fetchImpl });
+  const currentApi = window.__FA_QX__;
+  await currentApi.ready;
+  const currentBadge = document.querySelector('#fa-qx-diagnostic');
+  oldHealth.resolve({
+    ok: true,
+    json: () => Promise.resolve({ ok: true, data: { release: '0.1.0', buildId: oldBuildId, schema: 1 } }),
+  });
+  await waitFor(() => requests.some((request) => request.buildId === oldBuildId && request.operation === 'config.get'));
+  oldConfig.reject(oldError);
+  await assert.rejects(oldApi.ready, (error) => error === oldError);
+  assert.equal(window.__FA_QX__, currentApi);
+  assert.equal(currentApi.state, 'ready');
+  assert.equal(document.querySelector('#fa-qx-diagnostic'), currentBadge);
+  assert.equal(document.diagnosticCount(), 1);
+  assert.doesNotMatch(currentBadge.textContent, /FA_QX_UNKNOWN/);
+  assert.notEqual(oldPage.window.__FA_QX__, oldApi);
 });
 
 test('bridge only serves the matching runtime health operation', () => {
