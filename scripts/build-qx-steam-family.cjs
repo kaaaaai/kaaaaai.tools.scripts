@@ -33,6 +33,7 @@ function validateRelease(value) {
 }
 
 validateRelease(release);
+if (!release.hosts.includes('store.steampowered.com')) invalidMetadata('hosts must include store.steampowered.com');
 
 function canonicalJson(value) {
   if (Array.isArray(value)) return '[' + value.map(canonicalJson).join(',') + ']';
@@ -60,6 +61,7 @@ const replacements = {
   __FA_SCHEMA__: String(release.schema),
   __FA_INDEX_SCHEMA__: String(release.indexSchema),
   __FA_HOSTS__: JSON.stringify(release.hosts),
+  __FA_MUTATION_HOST__: 'store.steampowered.com',
   __FA_OPERATION_DISPATCH__: operationDispatch,
   __FA_BRIDGE_TIMEOUT_MS__: String(release.bridgeTimeoutMs),
 };

@@ -3,6 +3,8 @@
   var SCHEMA = 1;
   var INDEX_SCHEMA = 1;
   var HOSTS = ["store.steampowered.com","keylol.com","steamdb.keylol.com"];
+  var BRIDGE_ROUTE = '/fa-qx/v1/bridge';
+  var MUTATION_HOST = 'store.steampowered.com';
   var OPERATIONS = {
     'runtime.health': { handler: runtimeHealth, storeOnly: false },
     'config.get': { handler: configGet, storeOnly: false },
@@ -72,6 +74,11 @@
     return typeof value === 'number' && Number.isSafeInteger(value);
   }
 
+  function publicErrorCode(error) {
+    var code = error && error.message;
+    return typeof code === 'string' && /^FA_QX_[A-Z0-9_]+$/.test(code) ? code : 'FA_QX_UNKNOWN';
+  }
+
   function preference(key) {
     return $prefs.valueForKey(NS + key);
   }
@@ -98,7 +105,12 @@
     return raw === 'error' || raw === 'warn' || raw === 'info' || raw === 'debug' ? raw : fallback;
   }
 
-  function configGet() {
+  function requireEmptyPayload(payload) {
+    if (!hasOnlyKeys(payload, [])) throw new Error('FA_QX_PAYLOAD_INVALID');
+  }
+
+  function configGet(payload) {
+    requireEmptyPayload(payload);
     return {
       autoScan: readBoolean('settings.autoScan', DEFAULTS.autoScan),
       storeMarking: readBoolean('settings.storeMarking', DEFAULTS.storeMarking),
@@ -245,11 +257,12 @@
     if (!isObject(payload)) throw new Error('FA_QX_INDEX_INVALID');
     var manifest = installedManifest();
     if (payload.part === 'manifest') {
+      if (!hasOnlyKeys(payload, ['part'])) throw new Error('FA_QX_INDEX_INVALID');
       if (manifest === null) return null;
       readInstalledChunks(manifest);
       return manifest;
     }
-    if (payload.part !== 'chunk' || manifest === null || payload.generation !== manifest.generation ||
+    if (!hasOnlyKeys(payload, ['part', 'generation', 'chunkIndex']) || payload.part !== 'chunk' || manifest === null || payload.generation !== manifest.generation ||
       !isSafeInteger(payload.chunkIndex) || payload.chunkIndex < 0 || payload.chunkIndex >= manifest.chunks) {
       throw new Error('FA_QX_INDEX_INVALID');
     }
@@ -257,7 +270,8 @@
     return { chunk: chunks[payload.chunkIndex], checksum: fnv1a(chunks[payload.chunkIndex]) };
   }
 
-  function indexClear() {
+  function indexClear(payload) {
+    requireEmptyPayload(payload);
     var manifest = installedManifest();
     if (manifest === null) return { cleared: true };
     removeGeneration(manifest.generation, manifest.chunks, true, true);
@@ -266,7 +280,7 @@
   }
 
   function commandAck(payload) {
-    if (!isObject(payload) || !Object.prototype.hasOwnProperty.call(COMMANDS, payload.command) || !isSafeInteger(payload.id)) throw new Error('FA_QX_COMMAND_INVALID');
+    if (!hasOnlyKeys(payload, ['command', 'id']) || !Object.prototype.hasOwnProperty.call(COMMANDS, payload.command) || !isSafeInteger(payload.id)) throw new Error('FA_QX_COMMAND_INVALID');
     var name = payload.command;
     var acknowledgement = readCounter('acknowledgements.' + name, DEFAULTS.acknowledgements[name]);
     var command = readCounter('commands.' + name, DEFAULTS.commands[name]);
@@ -275,10 +289,11 @@
     return { acknowledged: payload.id };
   }
 
-  function runtimeHealth() {
+  function runtimeHealth(payload) {
+    requireEmptyPayload(payload);
     var record = {
       release: '0.1.0',
-      buildId: '2cac1c6d1a5f',
+      buildId: '5170478d4143',
       coreVersion: null,
       schema: SCHEMA,
       timestamp: Date.now()
@@ -292,16 +307,24 @@
   var status = 200;
   var result;
   try {
+    if (request.method !== 'POST') throw new Error('FA_QX_METHOD_DENIED');
+    var route = typeof request.url === 'string' ? request.url.match(/^https:\/\/([^/?#]+)(\/[^?#]*)$/) : null;
+    if (!route || route[2] !== BRIDGE_ROUTE) throw new Error('FA_QX_ROUTE_DENIED');
+    var requestHost = route[1].toLowerCase();
+    if (HOSTS.indexOf(requestHost) === -1) throw new Error('FA_QX_HOST_DENIED');
     if (utf8ByteLength(raw) > 524288) throw new Error('FA_QX_BODY_TOO_LARGE');
     var input = JSON.parse(raw || '{}');
-    if (!isObject(input) || !Object.prototype.hasOwnProperty.call(OPERATIONS, input.operation)) throw new Error('FA_QX_OPERATION_DENIED');
-    if (input.release !== '0.1.0' || input.buildId !== '2cac1c6d1a5f') throw new Error('FA_QX_VERSION_MISMATCH');
-    var payload = input.payload === undefined ? {} : input.payload;
-    var data = OPERATIONS[input.operation].handler(payload);
+    if (!hasOnlyKeys(input, ['operation', 'payload', 'release', 'buildId'])) throw new Error('FA_QX_REQUEST_INVALID');
+    if (!Object.prototype.hasOwnProperty.call(OPERATIONS, input.operation)) throw new Error('FA_QX_OPERATION_DENIED');
+    if (input.release !== '0.1.0' || input.buildId !== '5170478d4143') throw new Error('FA_QX_VERSION_MISMATCH');
+    var operation = OPERATIONS[input.operation];
+    if (operation.storeOnly && requestHost !== MUTATION_HOST) throw new Error('FA_QX_HOST_DENIED');
+    var data = operation.handler(input.payload);
     result = { ok: true, data: data };
   } catch (error) {
-    status = /DENIED/.test(String(error.message)) ? 403 : 400;
-    result = { ok: false, error: String(error.message || 'FA_QX_BAD_REQUEST') };
+    var errorCode = publicErrorCode(error);
+    status = /DENIED/.test(errorCode) ? 403 : 400;
+    result = { ok: false, error: errorCode };
   }
   $done({
     status: 'HTTP/1.1 ' + status + (status === 200 ? ' OK' : status === 403 ? ' Forbidden' : ' Bad Request'),

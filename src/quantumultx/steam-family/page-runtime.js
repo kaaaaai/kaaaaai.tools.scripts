@@ -17,6 +17,8 @@
     }).then(function (result) {
       if (!result || result.ok !== true) throw new Error(result && result.error ? result.error : 'FA_QX_BRIDGE_INVALID');
       return result.data;
+    }).catch(function (error) {
+      throw new Error(redactError(error));
     });
   }
 

@@ -21,7 +21,9 @@ function runAsset() {
 }
 
 function runBridge(body) {
-  const { calls } = runQx(readAsset('bridge.js'), { $request: { body } });
+  const { calls } = runQx(readAsset('bridge.js'), {
+    $request: { body, method: 'POST', url: 'https://store.steampowered.com/fa-qx/v1/bridge' },
+  });
   assert.equal(calls.length, 1);
   return calls[0];
 }
@@ -164,6 +166,22 @@ test('page runtime redacts rejected health responses in its diagnostic', async (
   assert.doesNotMatch(badge.textContent, new RegExp(responseBody));
 });
 
+test('browser bridge rejects malicious server errors with an independently redacted public Error', async () => {
+  const malicious = 'private server detail with preference contents';
+  const { window, document } = runPageRuntime({
+    fetchImpl() {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ ok: false, error: malicious }),
+      });
+    },
+  });
+  await assert.rejects(window.__FA_QX__.ready, (error) => error && error.message === 'FA_QX_UNKNOWN');
+  assert.equal(window.__FA_QX__.error, 'FA_QX_UNKNOWN');
+  assert.doesNotMatch(document.querySelector('#fa-qx-diagnostic').textContent, new RegExp(malicious));
+  await assert.rejects(window.__FA_QX__.bridge('config.get', {}), (error) => error && error.message === 'FA_QX_UNKNOWN');
+});
+
 test('page runtime rejects invalid health without requesting configuration', async () => {
   const { window, document, postedRequests } = runPageRuntime({
     health: { release: 'wrong-release', buildId: currentBuildId(), schema: 1 },
@@ -190,7 +208,7 @@ test('page runtime redacts a rejected configuration request', async () => {
       return Promise.reject(originalError);
     },
   });
-  await assert.rejects(window.__FA_QX__.ready, (error) => error === originalError);
+  await assert.rejects(window.__FA_QX__.ready, (error) => error && error.message === 'FA_QX_UNKNOWN');
   assert.equal(window.__FA_QX__.state, 'error');
   assert.equal(window.__FA_QX__.error, 'FA_QX_UNKNOWN');
   assert.deepEqual(postedRequests.map((request) => request.operation), ['runtime.health', 'config.get']);
@@ -207,7 +225,7 @@ test('page runtime publishes a rejected startup API after a synchronous fetch fa
   });
   const { window, document } = page;
   assert.ok(window.__FA_QX__);
-  await assert.rejects(window.__FA_QX__.ready, (error) => error === originalError);
+  await assert.rejects(window.__FA_QX__.ready, (error) => error && error.message === 'FA_QX_UNKNOWN');
   assert.equal(window.__FA_QX__.state, 'error');
   const badge = document.querySelector('#fa-qx-diagnostic');
   assert.ok(badge);
@@ -232,7 +250,7 @@ test('page runtime internally observes rejected startup without changing ready r
   const startup = deferred(TrackingPromise);
   const { window } = runPageRuntime({ PromiseImpl: TrackingPromise, fetchImpl() { return startup.promise; } });
   assert.equal(window.__FA_QX__.ready.hasRejectionObserver, true);
-  const observed = assert.rejects(window.__FA_QX__.ready, (error) => error === originalError);
+  const observed = assert.rejects(window.__FA_QX__.ready, (error) => error && error.message === 'FA_QX_UNKNOWN');
   startup.reject(originalError);
   await observed;
 });
@@ -267,7 +285,7 @@ test('a superseded runtime cannot overwrite the current runtime after its health
   });
   await waitFor(() => requests.some((request) => request.buildId === oldBuildId && request.operation === 'config.get'));
   oldConfig.reject(oldError);
-  await assert.rejects(oldApi.ready, (error) => error === oldError);
+  await assert.rejects(oldApi.ready, (error) => error && error.message === 'FA_QX_UNKNOWN');
   assert.equal(window.__FA_QX__, currentApi);
   assert.equal(currentApi.state, 'ready');
   assert.equal(document.querySelector('#fa-qx-diagnostic'), currentBadge);
@@ -285,7 +303,7 @@ test('bridge only serves the matching runtime health operation', () => {
     ok: true,
     data: { release: '0.1.0', buildId, coreVersion: null, schema: 1 },
   });
-  const denied = runBridge(JSON.stringify({ operation: 'profile.read', release: '0.1.0', buildId }));
+  const denied = runBridge(JSON.stringify({ operation: 'profile.read', payload: {}, release: '0.1.0', buildId }));
   assert.equal(denied.status, 'HTTP/1.1 403 Forbidden');
   assert.equal(JSON.parse(denied.body).error, 'FA_QX_OPERATION_DENIED');
 });
@@ -300,6 +318,7 @@ test('bridge rejects mismatched runtime versions', () => {
   const buildId = runAsset().body.match(/buildId: '([0-9a-f]{12})'/)[1];
   const result = runBridge(JSON.stringify({
     operation: 'runtime.health',
+    payload: {},
     release: '0.1.1',
     buildId,
   }));

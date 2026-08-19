@@ -37,7 +37,11 @@ function call(operation, payload, options = {}) {
     ? JSON.stringify({ operation, payload, release, buildId })
     : options.body;
   const { calls } = runQx(bridge(), {
-    $request: { body },
+    $request: {
+      body,
+      method: options.method === undefined ? 'POST' : options.method,
+      url: options.url === undefined ? 'https://store.steampowered.com/fa-qx/v1/bridge' : options.url,
+    },
     $prefs: {
       valueForKey(key) { return preferences.has(key) ? preferences.get(key) : null; },
       setValueForKey(value, key) {
@@ -55,6 +59,48 @@ function call(operation, payload, options = {}) {
   assert.equal(calls.length, 1);
   return { ...JSON.parse(calls[0].body), status: Number(calls[0].status.match(/\d{3}/)[0]) };
 }
+
+test('bridge requires POST on the exact virtual route and a configured host', { concurrency: false }, () => {
+  reset();
+  assert.equal(call('runtime.health', {}, { method: 'GET' }).error, 'FA_QX_METHOD_DENIED');
+  assert.equal(call('runtime.health', {}, { method: 'post' }).error, 'FA_QX_METHOD_DENIED');
+  assert.equal(call('runtime.health', {}, { url: 'https://store.steampowered.com/fa-qx/v1/bridge/' }).error, 'FA_QX_ROUTE_DENIED');
+  assert.equal(call('runtime.health', {}, { url: 'https://store.steampowered.com/fa-qx/v1/bridge?extra=1' }).error, 'FA_QX_ROUTE_DENIED');
+  assert.equal(call('runtime.health', {}, { url: 'https://evil.example/fa-qx/v1/bridge' }).error, 'FA_QX_HOST_DENIED');
+});
+
+test('configured community hosts are read-only while Steam may mutate', { concurrency: false }, () => {
+  reset();
+  for (const host of ['store.steampowered.com', 'keylol.com', 'steamdb.keylol.com']) {
+    const url = `https://${host}/fa-qx/v1/bridge`;
+    assert.equal(call('runtime.health', {}, { url }).status, 200);
+    assert.equal(call('config.get', {}, { url }).status, 200);
+    assert.equal(call('index.read', { part: 'manifest' }, { url }).status, 200);
+  }
+  for (const host of ['keylol.com', 'steamdb.keylol.com']) {
+    const url = `https://${host}/fa-qx/v1/bridge`;
+    assert.equal(call('command.ack', { command: 'rescan', id: 0 }, { url }).error, 'FA_QX_HOST_DENIED');
+    assert.equal(call('index.clear', {}, { url }).error, 'FA_QX_HOST_DENIED');
+    const next = manifest(1, ['alpha']);
+    assert.equal(call('index.publish', { phase: 'stage', manifest: next, chunkIndex: 0, chunk: 'alpha' }, { url }).error, 'FA_QX_HOST_DENIED');
+  }
+  assert.equal([...preferences.keys()].some((key) => /index\.|acknowledgements\./.test(key)), false);
+});
+
+test('bridge requires exact top-level and per-operation payload fields', { concurrency: false }, () => {
+  reset();
+  const { release, buildId } = releaseManifest();
+  const envelope = { operation: 'runtime.health', payload: {}, release, buildId };
+  assert.equal(call(null, null, { body: JSON.stringify({ ...envelope, extra: true }) }).error, 'FA_QX_REQUEST_INVALID');
+  const missingPayload = { operation: 'runtime.health', release, buildId };
+  assert.equal(call(null, null, { body: JSON.stringify(missingPayload) }).error, 'FA_QX_REQUEST_INVALID');
+  for (const operation of ['runtime.health', 'config.get', 'index.clear']) {
+    assert.equal(call(operation, { extra: true }).error, 'FA_QX_PAYLOAD_INVALID');
+  }
+  assert.equal(call('command.ack', { command: 'rescan', id: 0, extra: true }).error, 'FA_QX_COMMAND_INVALID');
+  assert.equal(call('index.read', { part: 'manifest', extra: true }).error, 'FA_QX_INDEX_INVALID');
+  assert.equal(call('index.read', { part: 'chunk', generation: 1 }).error, 'FA_QX_INDEX_INVALID');
+});
 
 function manifest(generation, chunks, overrides = {}) {
   return {
@@ -252,7 +298,7 @@ test('command acknowledgements are constrained to each command counter', { concu
 
 test('bridge rejects malformed JSON and an over-limit UTF-8 request body', { concurrency: false }, () => {
   reset();
-  assert.equal(call(null, null, { body: '{"operation":' }).status, 400);
+  assert.equal(call(null, null, { body: '{"operation":' }).error, 'FA_QX_UNKNOWN');
   const { release, buildId } = releaseManifest();
   const body = JSON.stringify({ operation: 'config.get', payload: { text: '😀'.repeat(131200) }, release, buildId });
   assert.ok(body.length < 524288);
@@ -260,4 +306,13 @@ test('bridge rejects malformed JSON and an over-limit UTF-8 request body', { con
   const result = call(null, null, { body });
   assert.equal(result.status, 400);
   assert.equal(result.error, 'FA_QX_BODY_TOO_LARGE');
+});
+
+test('bridge redacts native preference exceptions to a public FA_QX code', { concurrency: false }, () => {
+  reset();
+  throwAfterWrites.add(`${NS}health`);
+  const result = call('runtime.health', {});
+  assert.equal(result.error, 'FA_QX_UNKNOWN');
+  assert.match(result.error, /^FA_QX_[A-Z0-9_]+$/);
+  assert.doesNotMatch(JSON.stringify(result), /simulated write failure|health/);
 });
