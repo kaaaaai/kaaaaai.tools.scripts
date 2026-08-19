@@ -63,6 +63,23 @@ Chart.js, the pinyin library, and the App Detail Library are bundled into
 versioned distribution assets instead of being loaded through userscript
 `@require` directives in the Quantumult X edition.
 
+### Executable shared-source transition
+
+The first full-parity QX release uses the tracked
+`steam-family-game-analysis.user.js` body as the generated shared core instead
+of maintaining a copied QX fork. A QX browser adapter supplies the userscript
+capabilities (`GM_*`, `unsafeWindow`, style injection, and privileged request
+callbacks) before that core is loaded. This preserves the exact v2.04 feature
+surface immediately while keeping one authoritative UI/business source. Later
+extraction into smaller core/UI modules may be mechanical and must not change
+the adapter contract or visible behavior.
+
+Privileged page requests use a dedicated `script-analyze-echo-response` route,
+because Quantumult X documents that this variant waits for the request body.
+Sensitive Steam request data is carried only in the POST body and is never
+placed in the virtual bridge URL. The existing health/configuration bridge
+remains a body-free `script-echo-response` GET route.
+
 ## Runtime and Asset Loading
 
 Quantumult X response rules inject a small, idempotent bootstrap into eligible
