@@ -7,8 +7,23 @@ const os = require('node:os');
 const childProcess = require('node:child_process');
 
 const root = path.resolve(__dirname, '..');
-const releaseDir = path.join(root, 'quantumultx/steam-family/releases/0.1.1');
+const releaseDir = path.join(root, 'quantumultx/steam-family/releases/0.2.0');
 const sha256 = (text) => crypto.createHash('sha256').update(text).digest('hex');
+
+test('full-core release publishes the v2.04 QX contract and required assets', () => {
+  const metadata = JSON.parse(fs.readFileSync(path.join(root, 'src/quantumultx/steam-family/release.json'), 'utf8'));
+  assert.equal(metadata.release, '0.2.0');
+  assert.equal(metadata.coreVersion, '2.04');
+  assert.deepEqual(metadata.proxyOperations, [
+    'steam.familyGroup', 'steam.sharedApps', 'steam.playerLinks', 'steam.recentGames',
+    'steam.ownedGames', 'steam.storeItems', 'external.bundle', 'external.dlc',
+    'external.goty', 'external.exchangeRates', 'external.augmentedRates'
+  ]);
+  const fullReleaseDir = path.join(root, 'quantumultx/steam-family/releases/0.2.0');
+  for (const name of ['injector.js', 'runtime-asset.js', 'bridge.js', 'proxy.js', 'asset-asset.js', 'core.js']) {
+    assert.equal(fs.existsSync(path.join(fullReleaseDir, name)), true, `${name} must be published`);
+  }
+});
 const expectedHosts = ['store.steampowered.com', 'keylol.com', 'steamdb.keylol.com'];
 const expectedOperations = ['runtime.health', 'config.get', 'command.ack', 'index.publish', 'index.read', 'index.clear'];
 
@@ -18,6 +33,7 @@ function temporaryBuildRoot() {
   fs.cpSync(path.join(root, 'src/quantumultx/steam-family'), path.join(temporaryRoot, 'src/quantumultx/steam-family'), { recursive: true });
   fs.mkdirSync(path.join(temporaryRoot, 'scripts'), { recursive: true });
   fs.copyFileSync(path.join(root, 'scripts/build-qx-steam-family.cjs'), path.join(temporaryRoot, 'scripts/build-qx-steam-family.cjs'));
+  fs.copyFileSync(path.join(root, 'steam-family-game-analysis.user.js'), path.join(temporaryRoot, 'steam-family-game-analysis.user.js'));
   return temporaryRoot;
 }
 
@@ -30,11 +46,14 @@ function runTemporaryBuild(temporaryRoot) {
 
 function snapshotPublishedFiles(temporaryRoot) {
   const publishedRoot = path.join(temporaryRoot, 'quantumultx/steam-family');
-  const releaseRoot = path.join(publishedRoot, 'releases/0.1.1');
+  const releaseRoot = path.join(publishedRoot, 'releases/0.2.0');
   return Object.fromEntries([
     'injector.js',
     'runtime-asset.js',
     'bridge.js',
+    'proxy.js',
+    'asset-asset.js',
+    'core.js',
     'manifest.json',
     '../../steam-family.snippet',
     '../../steam-family-poc.snippet',
@@ -105,8 +124,8 @@ test('runtime sources consume metadata through generated tokens', () => {
 
 test('build emits a self-consistent release and stable snippets', () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(releaseDir, 'manifest.json'), 'utf8'));
-  assert.equal(manifest.release, '0.1.1');
-  assert.equal(manifest.coreVersion, null);
+  assert.equal(manifest.release, '0.2.0');
+  assert.equal(manifest.coreVersion, '2.04');
   assert.equal(manifest.schema, 1);
   assert.equal(manifest.indexSchema, 1);
   assert.equal(manifest.preferenceNamespace, 'kaaaaai.steam-family-qx');
@@ -120,9 +139,9 @@ test('build emits a self-consistent release and stable snippets', () => {
   const canonical = fs.readFileSync(path.join(root, 'quantumultx/steam-family/steam-family.snippet'), 'utf8');
   const compatible = fs.readFileSync(path.join(root, 'quantumultx/steam-family/steam-family-poc.snippet'), 'utf8');
   assert.equal(compatible, canonical);
-  assert.match(canonical, /releases\/0\.1\.1\/injector\.js/);
-  assert.match(canonical, /script-echo-response .*releases\/0\.1\.1\/runtime-asset\.js/);
-  assert.match(canonical, /script-echo-response .*releases\/0\.1\.1\/bridge\.js/);
+  assert.match(canonical, /releases\/0\.2\.0\/injector\.js/);
+  assert.match(canonical, /script-echo-response .*releases\/0\.2\.0\/runtime-asset\.js/);
+  assert.match(canonical, /script-echo-response .*releases\/0\.2\.0\/bridge\.js/);
 });
 
 test('a published release cannot be overwritten with different bytes under the same version', () => {
