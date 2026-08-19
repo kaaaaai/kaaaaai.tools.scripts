@@ -9,6 +9,9 @@ const bridge = () => fs.readFileSync(path.join(releaseDir, 'bridge.js'), 'utf8')
 const releaseManifest = () => JSON.parse(fs.readFileSync(path.join(releaseDir, 'manifest.json'), 'utf8'));
 const preferences = new Map();
 const failWrites = new Set();
+const alteredWrites = new Map();
+const throwAfterWrites = new Set();
+const throwDeletes = new Set();
 const NS = 'kaaaaai.steam-family-qx.';
 
 function fnv1a(text) {
@@ -23,6 +26,9 @@ function fnv1a(text) {
 function reset() {
   preferences.clear();
   failWrites.clear();
+  alteredWrites.clear();
+  throwAfterWrites.clear();
+  throwDeletes.clear();
 }
 
 function call(operation, payload, options = {}) {
@@ -36,10 +42,14 @@ function call(operation, payload, options = {}) {
       valueForKey(key) { return preferences.has(key) ? preferences.get(key) : null; },
       setValueForKey(value, key) {
         if (failWrites.has(key)) return false;
-        preferences.set(key, String(value));
+        preferences.set(key, alteredWrites.has(key) ? alteredWrites.get(key) : String(value));
+        if (throwAfterWrites.has(key)) throw new Error('simulated write failure');
         return true;
       },
-      removeValueForKey(key) { return preferences.delete(key); },
+      removeValueForKey(key) {
+        if (throwDeletes.has(key)) throw new Error('simulated delete failure');
+        return preferences.delete(key);
+      },
     },
   });
   assert.equal(calls.length, 1);
@@ -81,6 +91,15 @@ test('bridge returns allowlisted default preferences and records health', { conc
   assert.equal(health.release, releaseManifest().release);
   assert.equal(health.buildId, releaseManifest().buildId);
   assert.deepEqual(Object.keys(JSON.parse(preferences.get(`${NS}health`))).sort(), ['buildId', 'coreVersion', 'release', 'schema', 'timestamp']);
+});
+
+test('prototype operation and command names are denied without clearing the installed index', { concurrency: false }, () => {
+  reset();
+  const oldManifest = install();
+  assert.equal(call('toString', {}).status, 403);
+  assert.equal(call('command.ack', { command: 'toString', id: 0 }).status, 400);
+  assert.deepEqual(call('index.read', { part: 'manifest' }).data, oldManifest);
+  assert.equal(call('index.read', { part: 'chunk', generation: 7, chunkIndex: 0 }).data.chunk, 'alpha');
 });
 
 test('config.get accepts only the documented preference types', { concurrency: false }, () => {
@@ -127,14 +146,62 @@ test('index rejects invalid staged and committed manifests without replacing the
     { phase: 'stage', manifest: manifest(8, nextChunks, { chunks: 33 }), chunkIndex: 0, chunk: nextChunks[0] },
     { phase: 'stage', manifest: nextManifest, chunkIndex: 1, chunk: nextChunks[0] },
     { phase: 'stage', manifest: nextManifest, chunkIndex: 0, chunk: 'x'.repeat(98305) },
+    { phase: 'stage', manifest: nextManifest, chunkIndex: 0, chunk: '😀'.repeat(24577) },
+    { phase: 'stage', manifest: manifest(8, nextChunks, { accessToken: 'secret', response: { body: 'never-store' } }), chunkIndex: 0, chunk: nextChunks[0] },
   ];
   for (const payload of rejected) assert.equal(call('index.publish', payload).status, 400);
+  assert.equal(preferences.has(`${NS}index.staging.8.0`), false);
   assert.equal(call('index.publish', { phase: 'stage', manifest: nextManifest, chunkIndex: 0, chunk: nextChunks[0] }).data.staged, 0);
   assert.equal(call('index.publish', { phase: 'stage', manifest: nextManifest, chunkIndex: 0, chunk: nextChunks[0] }).status, 400);
   assert.equal(call('index.publish', { phase: 'commit', manifest: manifest(8, nextChunks, { checksum: '00000000' }) }).status, 400);
   assert.deepEqual(call('index.read', { part: 'manifest' }).data, oldManifest);
   assert.equal(call('index.read', { part: 'chunk', generation: 7, chunkIndex: 1 }).data.chunk, 'bravo');
   assert.equal(call('index.publish', { phase: 'commit', manifest: oldManifest }).status, 400);
+});
+
+test('a changed staged readback is removed so a corrected retry can stage cleanly', { concurrency: false }, () => {
+  reset();
+  const oldManifest = install();
+  const nextManifest = manifest(8, ['charlie']);
+  alteredWrites.set(`${NS}index.staging.8.0`, 'truncated');
+  assert.equal(call('index.publish', { phase: 'stage', manifest: nextManifest, chunkIndex: 0, chunk: 'charlie' }).status, 400);
+  assert.equal(preferences.has(`${NS}index.staging.8.0`), false);
+  assert.deepEqual(call('index.read', { part: 'manifest' }).data, oldManifest);
+  alteredWrites.clear();
+  assert.equal(call('index.publish', { phase: 'stage', manifest: nextManifest, chunkIndex: 0, chunk: 'charlie' }).data.staged, 0);
+});
+
+test('a thrown staged write is cleaned best-effort before returning the failure', { concurrency: false }, () => {
+  reset();
+  const oldManifest = install();
+  const nextManifest = manifest(8, ['charlie']);
+  throwAfterWrites.add(`${NS}index.staging.8.0`);
+  assert.equal(call('index.publish', { phase: 'stage', manifest: nextManifest, chunkIndex: 0, chunk: 'charlie' }).status, 400);
+  assert.equal(preferences.has(`${NS}index.staging.8.0`), false);
+  assert.deepEqual(call('index.read', { part: 'manifest' }).data, oldManifest);
+});
+
+test('commit write failure cleans the new generation and preserves the installed index', { concurrency: false }, () => {
+  reset();
+  const oldManifest = install();
+  const nextManifest = manifest(8, ['charlie']);
+  assert.equal(call('index.publish', { phase: 'stage', manifest: nextManifest, chunkIndex: 0, chunk: 'charlie' }).data.staged, 0);
+  failWrites.add(`${NS}index.manifest`);
+  assert.match(call('index.publish', { phase: 'commit', manifest: nextManifest }).error, /FA_QX_PREF_WRITE_FAILED/);
+  assert.deepEqual(call('index.read', { part: 'manifest' }).data, oldManifest);
+  assert.equal(preferences.has(`${NS}index.chunk.8.0`), false);
+  assert.equal(preferences.has(`${NS}index.staging.8.0`), false);
+});
+
+test('deletion failures after publication do not roll back a successful commit', { concurrency: false }, () => {
+  reset();
+  install();
+  const nextManifest = manifest(8, ['charlie']);
+  assert.equal(call('index.publish', { phase: 'stage', manifest: nextManifest, chunkIndex: 0, chunk: 'charlie' }).data.staged, 0);
+  throwDeletes.add(`${NS}index.chunk.7.0`);
+  assert.equal(call('index.publish', { phase: 'commit', manifest: nextManifest }).data.generation, 8);
+  assert.deepEqual(call('index.read', { part: 'manifest' }).data, nextManifest);
+  assert.equal(call('index.read', { part: 'chunk', generation: 8, chunkIndex: 0 }).data.chunk, 'charlie');
 });
 
 test('index read rejects corrupted stored data and staged write failures preserve the old index', { concurrency: false }, () => {
@@ -154,6 +221,19 @@ test('index read validates generation and chunk range', { concurrency: false }, 
   assert.equal(call('index.read', { part: 'chunk', generation: 6, chunkIndex: 0 }).status, 400);
   assert.equal(call('index.read', { part: 'chunk', generation: 7, chunkIndex: 2 }).status, 400);
   assert.equal(call('index.read', { part: 'chunk', generation: 7, chunkIndex: 0.5 }).status, 400);
+});
+
+test('index read rejects missing chunks and aggregate checksum corruption without partial data', { concurrency: false }, () => {
+  reset();
+  install();
+  preferences.delete(`${NS}index.chunk.7.1`);
+  assert.equal(call('index.read', { part: 'manifest' }).error, 'FA_QX_INDEX_CORRUPT');
+  assert.equal(call('index.read', { part: 'chunk', generation: 7, chunkIndex: 0 }).error, 'FA_QX_INDEX_CORRUPT');
+  reset();
+  install();
+  preferences.set(`${NS}index.chunk.7.1`, 'tampered');
+  assert.equal(call('index.read', { part: 'manifest' }).error, 'FA_QX_INDEX_CORRUPT');
+  assert.equal(call('index.read', { part: 'chunk', generation: 7, chunkIndex: 0 }).error, 'FA_QX_INDEX_CORRUPT');
 });
 
 test('command acknowledgements are constrained to each command counter', { concurrency: false }, () => {

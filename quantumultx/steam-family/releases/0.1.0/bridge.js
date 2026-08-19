@@ -127,7 +127,7 @@
   }
 
   function validateManifest(value) {
-    if (!isObject(value) || value.schema !== 1 || !isSafeInteger(value.generation) || value.generation <= 0 ||
+    if (!hasOnlyKeys(value, ['schema', 'generation', 'sourceUpdatedAt', 'chunks', 'checksum']) || value.schema !== 1 || !isSafeInteger(value.generation) || value.generation <= 0 ||
       !isSafeInteger(value.sourceUpdatedAt) || value.sourceUpdatedAt < 0 || !isSafeInteger(value.chunks) ||
       value.chunks < 1 || value.chunks > 32 || typeof value.checksum !== 'string' || !/^[0-9a-f]{8}$/.test(value.checksum)) {
       throw new Error('FA_QX_INDEX_INVALID');
@@ -176,8 +176,12 @@
 
   function removeGeneration(generation, count, includeChunks, includeStaging) {
     for (var index = 0; index < count; index += 1) {
-      if (includeChunks) $prefs.removeValueForKey(NS + chunkKey(generation, index));
-      if (includeStaging) $prefs.removeValueForKey(NS + stagingKey(generation, index));
+      if (includeChunks) {
+        try { $prefs.removeValueForKey(NS + chunkKey(generation, index)); } catch (_) {}
+      }
+      if (includeStaging) {
+        try { $prefs.removeValueForKey(NS + stagingKey(generation, index)); } catch (_) {}
+      }
     }
   }
 
@@ -187,11 +191,16 @@
     var current = validatedInstalled();
     if (current !== null && manifest.generation <= current.generation) throw new Error('FA_QX_INDEX_ROLLBACK');
     if (!isSafeInteger(payload.chunkIndex) || payload.chunkIndex < 0 || payload.chunkIndex >= manifest.chunks ||
-      typeof payload.chunk !== 'string' || payload.chunk.length > 98304) throw new Error('FA_QX_INDEX_INVALID');
+      typeof payload.chunk !== 'string' || utf8ByteLength(payload.chunk) > 98304) throw new Error('FA_QX_INDEX_INVALID');
     var key = stagingKey(manifest.generation, payload.chunkIndex);
     if (preference(key) !== null && preference(key) !== undefined) throw new Error('FA_QX_INDEX_DUPLICATE_CHUNK');
-    if ($prefs.setValueForKey(payload.chunk, NS + key) !== true) throw new Error('FA_QX_PREF_WRITE_FAILED');
-    if (preference(key) !== payload.chunk) throw new Error('FA_QX_PREF_WRITE_FAILED');
+    try {
+      if ($prefs.setValueForKey(payload.chunk, NS + key) !== true) throw new Error('FA_QX_PREF_WRITE_FAILED');
+      if (preference(key) !== payload.chunk) throw new Error('FA_QX_PREF_WRITE_FAILED');
+    } catch (error) {
+      removeGeneration(manifest.generation, manifest.chunks, false, true);
+      throw error;
+    }
     return { staged: payload.chunkIndex };
   }
 
@@ -201,20 +210,20 @@
     var current = validatedInstalled();
     if (current !== null && manifest.generation <= current.generation) throw new Error('FA_QX_INDEX_ROLLBACK');
     var chunks = [];
-    for (var index = 0; index < manifest.chunks; index += 1) {
-      var chunk = preference(stagingKey(manifest.generation, index));
-      if (typeof chunk !== 'string') throw new Error('FA_QX_INDEX_CORRUPT');
-      chunks.push(chunk);
-    }
-    if (fnv1a(chunks.join('')) !== manifest.checksum) throw new Error('FA_QX_INDEX_CORRUPT');
     try {
+      for (var index = 0; index < manifest.chunks; index += 1) {
+        var chunk = preference(stagingKey(manifest.generation, index));
+        if (typeof chunk !== 'string') throw new Error('FA_QX_INDEX_CORRUPT');
+        chunks.push(chunk);
+      }
+      if (fnv1a(chunks.join('')) !== manifest.checksum) throw new Error('FA_QX_INDEX_CORRUPT');
       for (var chunkIndex = 0; chunkIndex < chunks.length; chunkIndex += 1) {
         if ($prefs.setValueForKey(chunks[chunkIndex], NS + chunkKey(manifest.generation, chunkIndex)) !== true) throw new Error('FA_QX_PREF_WRITE_FAILED');
         if (preference(chunkKey(manifest.generation, chunkIndex)) !== chunks[chunkIndex]) throw new Error('FA_QX_PREF_WRITE_FAILED');
       }
       writeJson(manifestKey(), manifest);
     } catch (error) {
-      removeGeneration(manifest.generation, manifest.chunks, true, false);
+      removeGeneration(manifest.generation, manifest.chunks, true, true);
       throw error;
     }
     if (current !== null) removeGeneration(current.generation, current.chunks, true, true);
@@ -254,7 +263,7 @@
   }
 
   function acknowledge(payload) {
-    if (!isObject(payload) || !COMMANDS[payload.command] || !isSafeInteger(payload.id)) throw new Error('FA_QX_COMMAND_INVALID');
+    if (!isObject(payload) || !Object.prototype.hasOwnProperty.call(COMMANDS, payload.command) || !isSafeInteger(payload.id)) throw new Error('FA_QX_COMMAND_INVALID');
     var name = payload.command;
     var acknowledgement = readCounter('acknowledgements.' + name, DEFAULTS.acknowledgements[name]);
     var command = readCounter('commands.' + name, DEFAULTS.commands[name]);
@@ -266,7 +275,7 @@
   function health() {
     var record = {
       release: '0.1.0',
-      buildId: '0445dd2fcf99',
+      buildId: '7f2d9dbd78b4',
       coreVersion: null,
       schema: 1,
       timestamp: Date.now()
@@ -282,8 +291,8 @@
   try {
     if (utf8ByteLength(raw) > 524288) throw new Error('FA_QX_BODY_TOO_LARGE');
     var input = JSON.parse(raw || '{}');
-    if (!isObject(input) || !ALLOWED[input.operation]) throw new Error('FA_QX_OPERATION_DENIED');
-    if (input.release !== '0.1.0' || input.buildId !== '0445dd2fcf99') throw new Error('FA_QX_VERSION_MISMATCH');
+    if (!isObject(input) || !Object.prototype.hasOwnProperty.call(ALLOWED, input.operation)) throw new Error('FA_QX_OPERATION_DENIED');
+    if (input.release !== '0.1.0' || input.buildId !== '7f2d9dbd78b4') throw new Error('FA_QX_VERSION_MISMATCH');
     var payload = input.payload === undefined ? {} : input.payload;
     var data;
     if (input.operation === 'runtime.health') data = health();
@@ -291,7 +300,8 @@
     else if (input.operation === 'command.ack') data = acknowledge(payload);
     else if (input.operation === 'index.publish') data = publishIndex(payload);
     else if (input.operation === 'index.read') data = readIndex(payload);
-    else data = clearIndex();
+    else if (input.operation === 'index.clear') data = clearIndex();
+    else throw new Error('FA_QX_OPERATION_DENIED');
     result = { ok: true, data: data };
   } catch (error) {
     status = /DENIED/.test(String(error.message)) ? 403 : 400;
