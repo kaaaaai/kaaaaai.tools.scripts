@@ -1,65 +1,83 @@
-# Steam Family Sharing POC
+# Steam Family Sharing for Quantumult X
 
-This public Quantumult X module adds a small diagnostic badge to Steam HTML
-responses. It is a rewrite proof of concept, not the full Steam Family Sharing
-interface.
-
-## Remote resource
-
-Add this exact line under your existing `[rewrite_remote]` section of the
-Quantumult X profile:
-
-```text
-https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/quantumultx/steam-family/steam-family-poc.snippet, tag=Steam家庭库POC, update-interval=86400, opt-parser=false, enabled=true
-```
-
-The module matches only `https://store.steampowered.com/`, the root homepage,
-optionally followed only by a query string. App, login, checkout, API, and
-static paths are excluded. It uses exactly `store.steampowered.com` as the
-hostname for HTTPS interception.
+This is the Phase 1 Steam Family runtime for Quantumult X. It installs a
+small page runtime and a strictly allowlisted local bridge; it does **not** yet
+scan or import a Steam Family library.
 
 ## Prerequisites
 
-- Install the Quantumult X CA certificate on the device and enable trust for
-  the certificate in the operating system's certificate-trust settings.
-- Enable the Quantumult X HTTPS tunnel and ensure the tunnel is active while
-  opening Steam. HTTPS decryption must be enabled for
-  `store.steampowered.com`.
-- Open exactly `https://store.steampowered.com/`, the root homepage with an
-  optional query string only. App, login, checkout, API, and static paths are
-  excluded.
+- Install and trust the Quantumult X CA certificate, enable HTTPS decryption
+  for `store.steampowered.com`, and run the Quantumult X tunnel while loading
+  Steam.
+- Your existing profile must already enable the BoxJS Quantumult X rewrite
+  resource. This module's BoxJS subscription supplies application settings; it
+  does not add the BoxJS rewrite resource itself.
+- Keep the full QX profile private; it must never be published. Its certificate
+  and subscription material must never be published either. A private profile
+  path may be mentioned in internal operational notes only, never copied into
+  public artifacts.
 
 ## Install or refresh
 
-1. Add the exact remote resource line above under your existing
-   `[rewrite_remote]` section.
-2. In Quantumult X, refresh the remote rewrite resources (or reload the
-   profile) and confirm that the resource is enabled.
-3. Open or reload exactly `https://store.steampowered.com/` while the
-   Quantumult X tunnel is running; only an optional query string may follow
-   the root slash.
+For a new installation, add this canonical resource line under your existing
+`[rewrite_remote]` section:
 
-## Diagnostic badge
+```text
+https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/quantumultx/steam-family/steam-family.snippet, tag=Steam家庭库, update-interval=86400, opt-parser=false, enabled=true
+```
 
-- No badge: the response was not intercepted as eligible HTML, or the module
-  was not enabled.
-- `FA QX · HTML ✓ · JS …`: the HTML rewrite ran, but Content Security Policy
-  (CSP) or the embedded web-view policy may have blocked inline JavaScript.
-- `FA QX · HTML ✓ · JS ✓`: the HTML rewrite ran and the page executed the
-  diagnostic JavaScript.
-
-The badge is diagnostic-only and does not capture pointer input.
-
-## Remove the module
-
-Delete only the single remote resource line below from the Quantumult X
-profile, leave all other profile sections unchanged, and refresh the remote
-rewrite resources:
+Existing installations using the compatibility URL must keep this unchanged
+installed resource line; it is byte-identical to the canonical snippet:
 
 ```text
 https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/quantumultx/steam-family/steam-family-poc.snippet, tag=Steam家庭库POC, update-interval=86400, opt-parser=false, enabled=true
 ```
 
-Never publish an exported complete Quantumult X profile. Keep private
-certificates, credentials, proxies, subscriptions, cookies, headers, and
-account-specific settings out of public files.
+Refresh the remote rewrite resources (or reload the profile) and confirm the
+resource is enabled. The runtime applies to the configured Steam and community
+hosts; it does not modify unrelated profile sections.
+
+Add this BoxJS application subscription, then use its **调试角标** setting to
+enable the diagnostic badge when needed:
+
+```text
+https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/quantumultx/steam-family/boxjs.json
+```
+
+## Runtime status and diagnostics
+
+The diagnostic badge is hidden by default. After enabling **调试角标** in BoxJS
+and refreshing the affected page, these states have exact meanings:
+
+- **No runtime:** no `FA QX` badge means the page bootstrap or runtime asset did
+  not load; first check the remote resource, HTTPS decryption, and tunnel.
+- **`runtime ✓`:** the external page runtime loaded and began its startup
+  health check.
+- **`bridge ✓`:** the local bridge accepted the matching release and build and
+  returned the health/configuration data. A successful diagnostic reads
+  `FA QX 0.1.0 · runtime ✓ · bridge ✓`.
+- **Version mismatch:** `FA_QX_VERSION_MISMATCH` means the runtime and bridge
+  release/build are from different versions; refresh the remote resource so
+  both assets come from the same release directory.
+- **Redacted error:** the badge displays only a safe `FA_QX_*` code (or
+  `FA_QX_UNKNOWN`), never the upstream response body, preference values, or
+  private configuration details.
+
+## Current release
+
+| Component | Value |
+| --- | --- |
+| Runtime | `0.1.0` |
+| Core | `not installed` |
+| Schema | `1` |
+| Index schema | `1` |
+
+## Rollback or remove
+
+To roll back, change only the snippet's release asset references from
+`releases/0.1.0/` to a prior versioned directory, then refresh Quantumult X.
+Do not replace or publish the complete profile.
+
+To remove the module, delete only the single Steam family remote-resource line
+from the profile and refresh Quantumult X. Leave every other remote resource
+and profile section unchanged.
