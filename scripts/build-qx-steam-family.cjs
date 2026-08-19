@@ -22,16 +22,16 @@ if (typeof release.release !== 'string' || !/^[0-9A-Za-z.-]+$/.test(release.rele
 }
 
 const buildId = sha256(canonicalJson(release) + sources['injector.js'] + sources['page-runtime.js'] + sources['bridge.js']).slice(0, 12);
-const tokens = {
+const replacements = {
   __FA_RELEASE__: release.release,
   __FA_BUILD_ID__: buildId,
   __FA_ROUTE_PREFIX__: release.routePrefix,
 };
 
 function render(source) {
-  const output = Object.entries(tokens).reduce((text, [token, value]) => text.replace(new RegExp(token, 'g'), value), source);
-  for (const token of Object.keys(tokens)) {
-    if (output.includes(token)) throw new Error('Unreplaced source token: ' + token);
+  const output = Object.entries(replacements).reduce((text, [marker, value]) => text.replace(new RegExp(marker, 'g'), value), source);
+  for (const marker of Object.keys(replacements)) {
+    if (output.includes(marker)) throw new Error('Unreplaced source marker: ' + marker);
   }
   return output;
 }

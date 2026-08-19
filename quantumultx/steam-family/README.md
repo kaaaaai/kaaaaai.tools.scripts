@@ -77,16 +77,16 @@ states have exact meanings:
 ## Emergency rollback or remove
 
 Phase 1 has no prior production release. For an emergency rollback, replace
-only this module's remote-resource URL with this verified POC commit URL, then
-refresh Quantumult X:
+only this module's remote-resource URL with this immutable rollback resource,
+then refresh Quantumult X:
 
 ```text
-https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/7425947/quantumultx/steam-family/steam-family-poc.snippet
+https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/2e749839d2abdbaea73d35c91b417934d5a86699/quantumultx/steam-family/rollback/poc-7425947.snippet
 ```
 
 You can restore the main compatibility URL later by replacing only this
 module's remote-resource URL again and refreshing Quantumult X. Never restore,
-replace, or publish the full private profile.
+edit, replace, or publish the full private profile.
 
 To remove the module, delete only the single Steam family remote-resource line
 from the profile and refresh Quantumult X. Leave every other remote resource
