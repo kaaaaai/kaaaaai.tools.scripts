@@ -81,7 +81,7 @@ only this module's remote-resource URL with this immutable rollback resource,
 then refresh Quantumult X:
 
 ```text
-https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/2e749839d2abdbaea73d35c91b417934d5a86699/quantumultx/steam-family/rollback/poc-7425947.snippet
+https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/c16b1c22b430088609f027edbbb9be32755d4cff/quantumultx/steam-family/rollback/poc-7425947.snippet
 ```
 
 You can restore the main compatibility URL later by replacing only this

@@ -8,8 +8,8 @@ const root = path.resolve(__dirname, '..');
 const runtimeDir = path.join(root, 'quantumultx/steam-family');
 const sourceDir = path.join(root, 'src/quantumultx/steam-family');
 const rollbackSnippetPath = path.join(runtimeDir, 'rollback/poc-7425947.snippet');
-const pinnedPocCommit = '7425947';
-const rollbackCommit = '2e749839d2abdbaea73d35c91b417934d5a86699';
+const pinnedPocCommit = '742594724a9cc761d48a5edb06c1802896073958';
+const rollbackCommit = 'c16b1c22b430088609f027edbbb9be32755d4cff';
 const rawProjectPath = '/kaaaaai/kaaaaai.tools.scripts/';
 const credentialName = '(?:passphrase|p12|password|passwd|token|access[_-]?token|refresh[_-]?token|api[_-]?key|authorization|client[_-]?secret|private[_-]?key|subscription[_-]?url)';
 const activeCredentialAssignment = new RegExp(
@@ -236,12 +236,14 @@ test('rollback snippet pins its response script to the verified POC commit', () 
   const snippet = fs.readFileSync(rollbackSnippetPath, 'utf8');
   assert.match(snippet, new RegExp(`https://raw\\.githubusercontent\\.com/kaaaaai/kaaaaai\\.tools\\.scripts/${pinnedPocCommit}/quantumultx/steam-family/steam-family-poc\\.js`));
   assert.doesNotMatch(snippet, /\/main\//);
+  assert.doesNotMatch(snippet, /kaaaaai\.tools\.scripts\/[0-9a-f]{7}\//, 'rollback revisions must never use short commit hashes');
 });
 
 test('rollback documentation pins the outer resource to the immutable rollback commit', () => {
   const readme = fs.readFileSync(path.join(runtimeDir, 'README.md'), 'utf8');
   const expected = `https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/${rollbackCommit}/quantumultx/steam-family/rollback/poc-7425947.snippet`;
   assert.match(readme, new RegExp(expected.replaceAll('.', '\\.')));
+  assert.doesNotMatch(readme, /kaaaaai\.tools\.scripts\/[0-9a-f]{7}\//, 'outer rollback revisions must never use short commit hashes');
   assert.match(readme, /replace\s+only this module's remote-resource URL/i);
   assert.match(readme, /never restore,\s*edit, replace, or publish the full private profile/i);
 });
