@@ -72,6 +72,24 @@ test('builder rejects missing, invalid, and duplicate runtime metadata', () => {
   }
 });
 
+test('builder rejects valid metadata that would diverge from the fixed snippet routing contract', () => {
+  const mutations = [
+    (release) => { release.routePrefix = '/different/v1'; },
+    (release) => { release.hosts[1] = 'community.example.com'; },
+  ];
+  for (const mutate of mutations) {
+    const temporaryRoot = temporaryBuildRoot();
+    const metadataPath = path.join(temporaryRoot, 'src/quantumultx/steam-family/release.json');
+    const release = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+    mutate(release);
+    fs.writeFileSync(metadataPath, JSON.stringify(release, null, 2) + '\n');
+
+    const built = runTemporaryBuild(temporaryRoot);
+    assert.notEqual(built.status, 0, `divergent routing metadata unexpectedly built: ${built.stdout}`);
+    assert.match(built.stderr, /FA_QX_METADATA_INVALID/);
+  }
+});
+
 test('runtime sources consume metadata through generated tokens', () => {
   const bridgeSource = fs.readFileSync(path.join(root, 'src/quantumultx/steam-family/bridge.js'), 'utf8');
   const pageSource = fs.readFileSync(path.join(root, 'src/quantumultx/steam-family/page-runtime.js'), 'utf8');

@@ -213,8 +213,8 @@
   function recoverInstalledForMutation() {
     var record = installedRecord();
     if (record.manifest !== INVALID) return record;
-    invalidateValidationRequired();
     removeAndVerify(manifestKey());
+    invalidateValidationBestEffort();
     return { raw: null, manifest: null };
   }
 
@@ -385,8 +385,8 @@
   function indexClear(payload) {
     requireEmptyPayload(payload);
     var record = installedRecord();
-    invalidateValidationRequired();
     if (record.raw !== null && record.raw !== undefined && record.raw !== '') removeAndVerify(manifestKey());
+    invalidateValidationBestEffort();
     removeGenerationBestEffort(record.manifest);
     clearStagingBestEffort();
     return { cleared: true };
@@ -406,7 +406,7 @@
     requireEmptyPayload(payload);
     var record = {
       release: '0.1.0',
-      buildId: 'c3eb390b2515',
+      buildId: '27094feb1766',
       coreVersion: null,
       schema: SCHEMA,
       timestamp: Date.now()
@@ -429,7 +429,7 @@
     var input = JSON.parse(raw || '{}');
     if (!hasOnlyKeys(input, ['operation', 'payload', 'release', 'buildId'])) throw new Error('FA_QX_REQUEST_INVALID');
     if (!Object.prototype.hasOwnProperty.call(OPERATIONS, input.operation)) throw new Error('FA_QX_OPERATION_DENIED');
-    if (input.release !== '0.1.0' || input.buildId !== 'c3eb390b2515') throw new Error('FA_QX_VERSION_MISMATCH');
+    if (input.release !== '0.1.0' || input.buildId !== '27094feb1766') throw new Error('FA_QX_VERSION_MISMATCH');
     var operation = OPERATIONS[input.operation];
     if (operation.storeOnly && requestHost !== MUTATION_HOST) throw new Error('FA_QX_HOST_DENIED');
     var data = operation.handler(input.payload);

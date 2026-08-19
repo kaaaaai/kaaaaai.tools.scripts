@@ -48,11 +48,14 @@ https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/quantumultx
 
 The successful health badge is hidden unless debug is enabled. Enable
 **调试角标** in BoxJS and refresh the affected page to show successful status.
-A redacted failure badge may appear automatically even with debug off. These
-states have exact meanings:
+A redacted failure badge may appear automatically even with debug off. With
+debug off, no badge is ambiguous: it is both the normal successful state and a
+possible sign that bootstrap never loaded. Enable **调试角标** before using the
+badge as a health check. With debug enabled, these states have exact meanings:
 
-- **No runtime:** no `FA QX` badge means the page bootstrap or runtime asset did
-  not load; first check the remote resource, HTTPS decryption, and tunnel.
+- **No badge after debug was enabled and the page refreshed:** the page
+  bootstrap or runtime asset did not load; first check the remote resource,
+  HTTPS decryption, and tunnel.
 - **`runtime ✓`:** the external page runtime loaded and began its startup
   health check.
 - **`bridge ✓`:** the local bridge accepted the matching release and build and

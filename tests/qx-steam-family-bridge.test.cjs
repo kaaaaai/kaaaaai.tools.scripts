@@ -178,7 +178,9 @@ test('publish and clear recover from a corrupt active pointer without guessing c
   assert.equal(call('index.publish', { phase: 'commit', manifest: next }).status, 200);
 
   preferences.set(`${NS}index.manifest`, '{bad again');
-  assert.equal(call('index.clear', {}).data.cleared, true);
+  const cleared = call('index.clear', {});
+  assert.equal(cleared.status, 200);
+  assert.equal(cleared.data.cleared, true);
   assert.equal(preferences.has(`${NS}index.manifest`), false);
   assert.equal(preferences.get(`${NS}index.chunk.untrusted.0`), 'leave-me');
 });
@@ -192,6 +194,30 @@ test('manifest deletion failure preserves the complete active index', { concurre
   failDeletes.clear();
   assert.deepEqual(call('index.read', { part: 'manifest' }).data, active);
   assert.equal(call('index.read', { part: 'chunk', generation: 7, chunkIndex: 1 }).data.chunk, 'bravo');
+});
+
+test('validation-marker deletion failure cannot keep the active manifest pointer installed', { concurrency: false }, () => {
+  reset();
+  install();
+  failDeletes.add(`${NS}index.validation`);
+
+  const cleared = call('index.clear', {});
+  assert.equal(cleared.status, 200);
+  assert.equal(cleared.data.cleared, true);
+  assert.equal(preferences.has(`${NS}index.manifest`), false);
+  assert.equal(preferences.has(`${NS}index.validation`), true);
+});
+
+test('validation-marker deletion failure cannot block recovery from a corrupt manifest pointer', { concurrency: false }, () => {
+  reset();
+  preferences.set(`${NS}index.manifest`, '{bad json');
+  preferences.set(`${NS}index.validation`, '{"generation":7}');
+  failDeletes.add(`${NS}index.validation`);
+  const next = manifest(9, ['fresh']);
+
+  const staged = call('index.publish', { phase: 'stage', manifest: next, chunkIndex: 0, chunk: 'fresh' });
+  assert.equal(staged.status, 200);
+  assert.equal(preferences.has(`${NS}index.manifest`), false);
 });
 
 test('commit persists a validation marker and invalidates it before changing the pointer', { concurrency: false }, () => {

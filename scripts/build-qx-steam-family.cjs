@@ -4,6 +4,10 @@ const path = require('node:path');
 
 const sourceNames = ['injector.js', 'page-runtime.js', 'bridge.js'];
 const sha256 = (text) => crypto.createHash('sha256').update(text).digest('hex');
+const snippetContract = {
+  routePrefix: '/fa-qx/v1',
+  hosts: ['store.steampowered.com', 'keylol.com', 'steamdb.keylol.com'],
+};
 
 function invalidMetadata(detail) {
   const error = new Error('FA_QX_METADATA_INVALID: ' + detail);
@@ -63,7 +67,8 @@ function build(projectRoot = path.resolve(__dirname, '..')) {
   const release = JSON.parse(fs.readFileSync(path.join(sourceDir, 'release.json'), 'utf8'));
   const sources = Object.fromEntries(sourceNames.map((name) => [name, fs.readFileSync(path.join(sourceDir, name), 'utf8')]));
   validateRelease(release);
-  if (!release.hosts.includes('store.steampowered.com')) invalidMetadata('hosts must include store.steampowered.com');
+  if (release.routePrefix !== snippetContract.routePrefix) invalidMetadata('routePrefix diverges from snippet contract');
+  if (JSON.stringify(release.hosts) !== JSON.stringify(snippetContract.hosts)) invalidMetadata('hosts diverge from snippet contract');
 
   const buildId = sha256(canonicalJson(release) + sources['injector.js'] + sources['page-runtime.js'] + sources['bridge.js']).slice(0, 12);
   const operationDispatch = '{\n' + release.operations.map((operation) => {

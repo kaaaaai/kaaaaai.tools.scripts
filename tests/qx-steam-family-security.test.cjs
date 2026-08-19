@@ -253,7 +253,8 @@ test('installation documentation describes the production runtime without the di
   assert.match(readme, /steam-family\.snippet, tag=Steam家庭库/);
   assert.match(readme, /boxjs\.json/);
   assert.match(readme, /BoxJS.*rewrite resource/i);
-  assert.match(readme, /no runtime/i);
+  assert.match(readme, /no badge is ambiguous/i);
+  assert.match(readme, /no badge after debug was enabled and the page refreshed/i);
   assert.match(readme, /runtime ✓/i);
   assert.match(readme, /bridge ✓/i);
   assert.match(readme, /version mismatch/i);

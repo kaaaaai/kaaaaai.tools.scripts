@@ -206,8 +206,8 @@
   function recoverInstalledForMutation() {
     var record = installedRecord();
     if (record.manifest !== INVALID) return record;
-    invalidateValidationRequired();
     removeAndVerify(manifestKey());
+    invalidateValidationBestEffort();
     return { raw: null, manifest: null };
   }
 
@@ -378,8 +378,8 @@
   function indexClear(payload) {
     requireEmptyPayload(payload);
     var record = installedRecord();
-    invalidateValidationRequired();
     if (record.raw !== null && record.raw !== undefined && record.raw !== '') removeAndVerify(manifestKey());
+    invalidateValidationBestEffort();
     removeGenerationBestEffort(record.manifest);
     clearStagingBestEffort();
     return { cleared: true };
