@@ -514,6 +514,15 @@ if (window.location.host == "store.steampowered.com") {
         + '.fa-fs-compact{left:0!important;right:auto!important;width:20px!important;height:20px!important;'
         + 'padding:0!important;font-size:0!important;line-height:0!important;'
         + 'border-radius:0 0 3px 0!important;text-align:center!important;z-index:20!important;}'
+        // v2.04: 标准卡片使用完整紫色胶囊，彻底覆盖 Steam 折叠旗标的宽度与定位规则。
+        //   显式盒模型确保 Mobile Safari 中图标和“家庭共享”文字始终位于紫色背景内。
+        + '.ds_flag.ds_family_share_flag.fa-fs-standard{left:0!important;right:auto!important;width:auto!important;min-width:max-content!important;height:24px!important;'
+        + 'max-width:none!important;box-sizing:border-box!important;padding:0 9px 0 22px!important;'
+        + 'display:inline-flex!important;align-items:center!important;font-size:11px!important;line-height:24px!important;'
+        + 'border-radius:0 0 5px 0!important;white-space:nowrap!important;text-align:left!important;overflow:hidden!important;'
+        + 'background-position:5px center!important;background-size:12px 12px!important;background-repeat:no-repeat!important;'
+        + 'background-color:#7c3aed!important;color:#fff!important;font-weight:700!important;letter-spacing:.2px!important;'
+        + 'box-shadow:0 2px 6px rgba(0,0,0,.28)!important;transition:none!important;z-index:20!important;}'
         // v1.96: 修复搜索页(热销榜/热门推荐等)家庭共享紫色标记不可见问题
         //   根因: Steam 原生 CSS(shared_global.css)中 .ds_collapse_flag.ds_flagged .ds_flag
         //   设置了 max-width:0;overflow:hidden;,使标记默认折叠不可见,仅 hover 时展开(max-width:120px)。
@@ -6834,8 +6843,8 @@ function faEnrichAppTypes(appIds) {
                     flag.title = '家庭共享：由 ' + thisGameInfo.owners.map(function(sid){ return saves.familyInfo.steamIdtoName[sid] || sid }).join('、') + ' 共享'
                     flag.style = "background:url(\"" + FAMILY_SHARE_FLAG_ICON + "\") no-repeat center / 12px 12px #7c3aed"
                 }else{
-                    flag.className = "ds_flag ds_family_share_flag"
-                    flag.innerHTML = '家庭共享&nbsp;&nbsp;'
+                    flag.className = "ds_flag ds_family_share_flag fa-fs-standard"
+                    flag.textContent = '家庭共享'
                     flag.title = '家庭共享：由 ' + thisGameInfo.owners.map(function(sid){ return saves.familyInfo.steamIdtoName[sid] || sid }).join('、') + ' 共享'
                     flag.style = "background:url(\"" + FAMILY_SHARE_FLAG_ICON + "\") no-repeat 4px 3px / 11px 11px #7c3aed;color:#fff;font-weight:bold"
                 }
