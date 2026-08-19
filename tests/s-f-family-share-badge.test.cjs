@@ -15,8 +15,14 @@ test('renders the standard family-share marker as a complete purple pill', () =>
     /\.fa-fs-standard\{left:0!important;right:auto!important;width:auto!important;min-width:max-content!important;height:24px!important/,
   );
   assert.match(source, /\.fa-fs-standard\{[^}]*box-sizing:border-box!important/);
+  assert.match(source, /\.fa-fs-standard\{[^}]*max-width:none!important/);
+  assert.match(source, /\.fa-fs-standard\{[^}]*padding:0 9px 0 22px!important/);
+  assert.match(source, /\.fa-fs-standard\{[^}]*display:inline-flex!important;align-items:center!important/);
+  assert.match(source, /\.fa-fs-standard\{[^}]*line-height:24px!important/);
+  assert.match(source, /\.fa-fs-standard\{[^}]*white-space:nowrap!important/);
   assert.match(source, /\.fa-fs-standard\{[^}]*overflow:hidden!important/);
   assert.match(source, /\.fa-fs-standard\{[^}]*background-position:5px center!important/);
+  assert.match(source, /\.fa-fs-standard\{[^}]*background-size:12px 12px!important;background-repeat:no-repeat!important/);
   assert.match(source, /flag\.textContent = '家庭共享'/);
   assert.doesNotMatch(source, /家庭共享&nbsp;&nbsp;/);
 });
@@ -30,4 +36,5 @@ test('keeps horizontal game rows on the compact icon-only marker', () => {
   );
   assert.match(source, /flag\.className = "ds_flag ds_family_share_flag fa-fs-compact"/);
   assert.match(source, /flag\.innerHTML = ''/);
+  assert.match(source, /\.fa-fs-compact\{[^}]*padding:0!important;font-size:0!important;line-height:0!important/);
 });
