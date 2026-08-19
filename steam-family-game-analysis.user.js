@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         steam-family-game-analysis (Publishable)
 // @namespace    http://tampermonkey.net/
-// @version      2.03
-// @description  扫描 Steam 家庭库库存，在游戏页面标记已有游戏，并提供家庭库数据分析。v2.03: 移除移动端浮动入口并优化贡献页面的 Mobile Safari 布局。
+// @version      2.04
+// @description  扫描 Steam 家庭库库存，在游戏页面标记已有游戏，并提供家庭库数据分析。v2.04: 修复 Mobile Safari 家庭共享角标背景被压窄的问题。
 // @author       SmallRob
 // @match        https://store.steampowered.com/*
 // @match        https://keylol.com/*
