@@ -46,8 +46,10 @@ https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/quantumultx
 
 ## Runtime status and diagnostics
 
-The diagnostic badge is hidden by default. After enabling **调试角标** in BoxJS
-and refreshing the affected page, these states have exact meanings:
+The successful health badge is hidden unless debug is enabled. Enable
+**调试角标** in BoxJS and refresh the affected page to show successful status.
+A redacted failure badge may appear automatically even with debug off. These
+states have exact meanings:
 
 - **No runtime:** no `FA QX` badge means the page bootstrap or runtime asset did
   not load; first check the remote resource, HTTPS decryption, and tunnel.
@@ -72,11 +74,19 @@ and refreshing the affected page, these states have exact meanings:
 | Schema | `1` |
 | Index schema | `1` |
 
-## Rollback or remove
+## Emergency rollback or remove
 
-To roll back, change only the snippet's release asset references from
-`releases/0.1.0/` to a prior versioned directory, then refresh Quantumult X.
-Do not replace or publish the complete profile.
+Phase 1 has no prior production release. For an emergency rollback, replace
+only this module's remote-resource URL with this verified POC commit URL, then
+refresh Quantumult X:
+
+```text
+https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/7425947/quantumultx/steam-family/steam-family-poc.snippet
+```
+
+You can restore the main compatibility URL later by replacing only this
+module's remote-resource URL again and refreshing Quantumult X. Never restore,
+replace, or publish the full private profile.
 
 To remove the module, delete only the single Steam family remote-resource line
 from the profile and refresh Quantumult X. Leave every other remote resource

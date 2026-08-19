@@ -93,10 +93,12 @@ test('bridge returns allowlisted default preferences and records health', { conc
   assert.deepEqual(Object.keys(JSON.parse(preferences.get(`${NS}health`))).sort(), ['buildId', 'coreVersion', 'release', 'schema', 'timestamp']);
 });
 
-test('prototype operation and command names are denied without clearing the installed index', { concurrency: false }, () => {
+test('adversarial operation and command names are denied without clearing the installed index', { concurrency: false }, () => {
   reset();
   const oldManifest = install();
-  assert.equal(call('toString', {}).status, 403);
+  for (const operation of ['toString', 'constructor', 'profile.read', 'random.forbidden']) {
+    assert.equal(call(operation, {}).status, 403);
+  }
   assert.equal(call('command.ack', { command: 'toString', id: 0 }).status, 400);
   assert.deepEqual(call('index.read', { part: 'manifest' }).data, oldManifest);
   assert.equal(call('index.read', { part: 'chunk', generation: 7, chunkIndex: 0 }).data.chunk, 'alpha');
