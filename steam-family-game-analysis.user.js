@@ -2545,8 +2545,10 @@ function faEnrichAppTypes(appIds) {
             function renderShareDetailOverlay() {
                 var overlay = panel.querySelector('[data-share-detail-overlay]');
                 if (!overlay) return;
+                overlay.className = 'fa-contrib-overlay fa-share-detail-view';
                 var defaultView = panel.querySelector('[data-contrib-default]');
                 // 显示覆盖层，隐藏默认视图
+                faRememberContributionScroll();
                 if (defaultView) defaultView.style.display = 'none';
                 overlay.style.display = 'flex';
                 overlay.style.flexDirection = 'column';
@@ -2599,7 +2601,7 @@ function faEnrichAppTypes(appIds) {
 
                 var html = '';
                 // 顶部栏：返回按钮 + 标题
-                html += '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">'
+                html += '<div class="fa-contrib-overlay-header" style="display:flex;align-items:center;gap:10px;flex-shrink:0;">'
                     + '<button id="faShareDetailBack" style="display:flex;align-items:center;gap:4px;background:rgba(15,23,42,0.6);border:1px solid rgba(6,207,190,0.25);color:#06cfbe;padding:5px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor=\'rgba(6,207,190,0.5)\';this.style.background=\'rgba(6,207,190,0.1)\'" onmouseout="this.style.borderColor=\'rgba(6,207,190,0.25)\';this.style.background=\'rgba(15,23,42,0.6)\'">'
                     + '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>'
                     + '返回</button>'
@@ -2617,7 +2619,7 @@ function faEnrichAppTypes(appIds) {
                     { label: '平均拥有者数', value: avgOwners, color: '#54a0ff', sub: '每款游戏平均' },
                     { label: '最大共享数', value: maxOwners + '人', color: '#2ed573', sub: '单款游戏最多拥有者' }
                 ];
-                html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;flex-shrink:0;">';
+                html += '<div class="fa-contrib-overlay-kpis" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;flex-shrink:0;">';
                 sdKpiCards.forEach(function(k) {
                     html += '<div style="background:linear-gradient(135deg,' + k.color + '18 0%,' + k.color + '06 100%);border:1px solid ' + k.color + '25;border-radius:10px;padding:12px 8px;text-align:center;position:relative;overflow:hidden;">'
                         + '<div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,' + k.color + ',transparent);"></div>'
@@ -2629,11 +2631,11 @@ function faEnrichAppTypes(appIds) {
                 html += '</div>';
 
                 // 双列：左侧成员贡献分布 | 右侧共享游戏列表
-                html += '<div style="display:flex;gap:12px;flex-wrap:wrap;flex:1;min-height:0;">';
+                html += '<div class="fa-share-detail-columns" style="display:flex;gap:12px;flex-wrap:wrap;flex:1;min-height:0;">';
 
                 // ---- 左：成员共享贡献对比 ----
                 // v1.79：overflow-y:auto 防止内容溢出被裁剪
-                html += '<div style="flex:1 1 280px;min-width:260px;background:rgba(30,41,59,0.95);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;box-shadow:0 4px 24px rgba(0,0,0,0.35);display:flex;flex-direction:column;overflow-y:auto;min-height:0;">';
+                html += '<div class="fa-share-detail-analysis" style="flex:1 1 280px;min-width:260px;background:rgba(30,41,59,0.95);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;box-shadow:0 4px 24px rgba(0,0,0,0.35);display:flex;flex-direction:column;overflow-y:auto;min-height:0;">';
                 html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-shrink:0;">'
                     + '<div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#c7d5e0;">'
                     + '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#06cfbe" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
@@ -2713,7 +2715,7 @@ function faEnrichAppTypes(appIds) {
                 var totalPages = Math.max(1, Math.ceil(sharedGames.length / perPage));
                 if (shareDetailPage > totalPages) shareDetailPage = 1;
                 var displayGames = sharedGames.slice((shareDetailPage - 1) * perPage, shareDetailPage * perPage);
-                html += '<div style="flex:1 1 380px;min-width:320px;background:rgba(30,41,59,0.95);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;box-shadow:0 4px 24px rgba(0,0,0,0.35);display:flex;flex-direction:column;">';
+                html += '<div class="fa-share-detail-games" style="flex:1 1 380px;min-width:320px;background:rgba(30,41,59,0.95);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;box-shadow:0 4px 24px rgba(0,0,0,0.35);display:flex;flex-direction:column;">';
                 html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-shrink:0;">'
                     + '<div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#c7d5e0;">'
                     + '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#54a0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>'
@@ -2771,6 +2773,7 @@ function faEnrichAppTypes(appIds) {
                         overlay.style.display = 'none';
                         overlay.innerHTML = '';
                         if (defaultView) defaultView.style.display = '';
+                        faRestoreContributionScroll();
                         // 恢复 Chart.js 图表（canvas 可能被覆盖层移除）
                         if (!document.getElementById('Family_countChart')) {
                             var chartWrap = panel.querySelector('[data-chart-bar-card]');
@@ -7741,6 +7744,10 @@ function faInjectGlobalStyle() {
         + '#familyAnalysisPanel .fa-my-contrib-view a[data-fa-appid]{white-space:normal!important;overflow-wrap:anywhere}'
         + '#familyAnalysisPanel #faContribBack{min-height:44px!important}'
         + '#familyAnalysisPanel #faExcPrevPage,#familyAnalysisPanel #faExcNextPage{min-height:44px!important}'
+        + '#familyAnalysisPanel .fa-share-detail-columns{display:grid!important;grid-template-columns:1fr!important;gap:10px!important;min-width:0!important}'
+        + '#familyAnalysisPanel .fa-share-detail-analysis,#familyAnalysisPanel .fa-share-detail-games{min-width:0!important;width:100%!important;flex:none!important;overflow:visible!important}'
+        + '#familyAnalysisPanel .fa-share-detail-games a[data-fa-appid]{white-space:normal!important;overflow-wrap:anywhere}'
+        + '#familyAnalysisPanel #faShareDetailBack,#familyAnalysisPanel #faSdPrevPage,#familyAnalysisPanel #faSdNextPage{min-height:44px!important}'
         + '.fa-global-search-pop{left:0;right:0;min-width:0;max-width:none}'
         + '}';
     document.head.appendChild(st);

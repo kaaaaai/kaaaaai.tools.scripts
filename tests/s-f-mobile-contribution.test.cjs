@@ -57,3 +57,18 @@ test('stacks My Contribution with sticky mobile navigation', () => {
   assert.match(source, /function faRememberContributionScroll\(\)/);
   assert.match(source, /function faRestoreContributionScroll\(\)/);
 });
+
+test('stacks Shared Distribution Detail and preserves tap drill-down', () => {
+  const source = readSource();
+  for (const hook of [
+    'fa-share-detail-view',
+    'fa-share-detail-columns',
+    'fa-share-detail-analysis',
+    'fa-share-detail-games',
+  ]) assert.match(source, new RegExp(hook));
+
+  assert.match(source, /\.fa-share-detail-columns\{display:grid!important;grid-template-columns:1fr!important/);
+  assert.match(source, /\.fa-share-detail-games a\[data-fa-appid\]\{white-space:normal!important/);
+  assert.match(source, /onClick:\s*function\(evt, elements\)[\s\S]*renderShareDetailOverlay\(\)/);
+  assert.match(source, /#faShareDetailBack[\s\S]*min-height:44px/);
+});
