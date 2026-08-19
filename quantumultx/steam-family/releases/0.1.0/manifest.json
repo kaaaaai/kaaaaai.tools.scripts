@@ -4,16 +4,31 @@
   "schema": 1,
   "indexSchema": 1,
   "routePrefix": "/fa-qx/v1",
-  "buildId": "75332714dfcb",
+  "preferenceNamespace": "kaaaaai.steam-family-qx",
+  "hosts": [
+    "store.steampowered.com",
+    "keylol.com",
+    "steamdb.keylol.com"
+  ],
+  "operations": [
+    "runtime.health",
+    "config.get",
+    "command.ack",
+    "index.publish",
+    "index.read",
+    "index.clear"
+  ],
+  "bridgeTimeoutMs": 8000,
+  "buildId": "2cac1c6d1a5f",
   "assets": {
     "injector.js": {
-      "sha256": "cdcdc316c1186e041f79f08ed966d9eab7cd6d1a0ed4202a6862bf096181dfd6"
+      "sha256": "6c22d6805696832dd30ad79e2318567c8d5b392da46b874f500c500b15211cfc"
     },
     "runtime-asset.js": {
-      "sha256": "2ba47ced2645522159c2cd7206c370c020a66447ec4c2b1deebe544766b5bd52"
+      "sha256": "2e920a80f43af7ebe69c51bd4ac19d304760c904e44e64b097aeb84f55f2c979"
     },
     "bridge.js": {
-      "sha256": "181d110a1b5be4aa068839ef19dbcdee2d32165f12423717aed8ca297e9b079a"
+      "sha256": "e33e99d4e1f5411ad0a893a5cb11d973a4097bd144ecf3f627d96c9363f2a177"
     }
   }
 }

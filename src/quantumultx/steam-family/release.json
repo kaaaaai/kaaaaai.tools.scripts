@@ -9,5 +9,14 @@
     "store.steampowered.com",
     "keylol.com",
     "steamdb.keylol.com"
-  ]
+  ],
+  "operations": [
+    "runtime.health",
+    "config.get",
+    "command.ack",
+    "index.publish",
+    "index.read",
+    "index.clear"
+  ],
+  "bridgeTimeoutMs": 8000
 }

@@ -1,5 +1,7 @@
 (function () {
   'use strict';
+  var SCHEMA = __FA_SCHEMA__;
+  var BRIDGE_TIMEOUT_MS = __FA_BRIDGE_TIMEOUT_MS__;
   if (window.__FA_QX__ && window.__FA_QX__.buildId === '__FA_BUILD_ID__') return;
   function bridge(operation, payload) {
     return Promise.resolve().then(function () {
@@ -24,7 +26,7 @@
   }
 
   function validateHealth(health) {
-    if (!health || health.release !== '__FA_RELEASE__' || health.buildId !== '__FA_BUILD_ID__' || health.schema !== 1) {
+    if (!health || health.release !== '__FA_RELEASE__' || health.buildId !== '__FA_BUILD_ID__' || health.schema !== SCHEMA) {
       throw new Error('FA_QX_RUNTIME_HEALTH_INVALID');
     }
     return health;

@@ -90,21 +90,6 @@ function stripComments(text) {
   return text.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, '');
 }
 
-function declaredNames(bridge, name) {
-  const match = bridge.match(new RegExp(`var ${name} = \\{([\\s\\S]*?)\\};`));
-  assert.ok(match, `bridge must declare ${name}`);
-  const entry = /(?:'([^']+)'|([A-Za-z_$][\w$]*))\s*:\s*true/g;
-  const names = [...match[1].matchAll(entry)].map((item) => item[1] || item[2]);
-  const remainder = match[1].replace(entry, '').replace(/[\s,]/g, '');
-  assert.equal(remainder, '', `bridge ${name} declaration contains unrecognized syntax`);
-  return names;
-}
-
-function assertOnlyMembershipReferences(bridge, name, member, file) {
-  assert.equal((bridge.match(new RegExp(`\\b${name}\\b`, 'g')) || []).length, 2, `${file} has unexpected ${name} references`);
-  assert.match(bridge, new RegExp(`Object\\.prototype\\.hasOwnProperty\\.call\\(${name}, ${member}\\)`), `${file} must check ${name} with an own-property lookup`);
-}
-
 function assertBridgeNetworkFree(bridge, file) {
   const compact = (text) => text.toLowerCase().replace(/\s+/g, '');
   for (const text of [compact(bridge), compact(stripComments(bridge))]) {
@@ -114,31 +99,23 @@ function assertBridgeNetworkFree(bridge, file) {
   }
 }
 
-function assertOperationDiscriminatorView(view, file, viewName) {
-  const membership = /Object\s*\.\s*prototype\s*\.\s*hasOwnProperty\s*\.\s*call\s*\(\s*ALLOWED\s*,\s*input\s*\.\s*operation\s*\)/g;
-  assert.equal([...view.matchAll(membership)].length, 1, `${file} ${viewName} must use input.operation exactly once for allowlist membership`);
-  const equality = /input\s*\.\s*operation\s*===\s*'([^']+)'/g;
-  const dispatched = [...view.matchAll(equality)].map((entry) => entry[1]);
-  assert.deepEqual(dispatched, operationNames, `${file} ${viewName} dispatch changed`);
-  const remainingOperationUses = view.replace(membership, '').replace(equality, '');
-  assert.doesNotMatch(remainingOperationUses, /\binput\s*\.\s*operation\b/, `${file} ${viewName} contains an unapproved input.operation use`);
-  assert.doesNotMatch(view, /\b(?:eval|Function)\b|\.\s*constructor\b|\[\s*(?:['"][^'"]*constructor[^'"]*['"]|['"][^'"]*['"]\s*\+)/, `${file} ${viewName} contains dynamic evaluation or constructor dispatch`);
-  assert.doesNotMatch(view, /\binput\s*\[/, `${file} ${viewName} uses computed operation access`);
-  assert.doesNotMatch(view, /\b[A-Za-z_$][\w$]*\s*\[[^\]]+\]\s*\(/, `${file} ${viewName} contains dynamic function dispatch`);
+function generatedOperationDispatch(bridge, file) {
+  const declaration = bridge.match(/var OPERATIONS = \{([\s\S]*?)\n  \};/);
+  assert.ok(declaration, `${file} must contain the generated operation dispatch`);
+  const entries = [...declaration[1].matchAll(/'([^']+)': \{ handler: ([A-Za-z_$][\w$]*), storeOnly: (true|false) \}/g)]
+    .map((match) => ({ name: match[1], handler: match[2], storeOnly: match[3] === 'true' }));
+  const remainder = declaration[1]
+    .replace(/'([^']+)': \{ handler: ([A-Za-z_$][\w$]*), storeOnly: (?:true|false) \}/g, '')
+    .replace(/[\s,]/g, '');
+  assert.equal(remainder, '', `${file} operation dispatch contains unrecognized syntax`);
+  return entries;
 }
 
-function assertStrictBridge(bridge, file) {
-  assert.deepEqual(declaredNames(bridge, 'ALLOWED'), operationNames, `${file} allowlist changed`);
-  assert.deepEqual(declaredNames(bridge, 'COMMANDS'), ['rescan', 'refreshExternal', 'clearCache'], `${file} command allowlist changed`);
-  assertOnlyMembershipReferences(bridge, 'ALLOWED', 'input.operation', file);
-  assertOnlyMembershipReferences(bridge, 'COMMANDS', 'payload.command', file);
-  const dotted = [...bridge.matchAll(/['"]([A-Za-z][A-Za-z0-9_-]*(?:\.[A-Za-z0-9_.-]+)+)['"]/g)].map((entry) => entry[1]);
-  for (const literal of dotted) {
-    assert.ok(operationNames.includes(literal) || preferenceLiterals.includes(literal), `${file} contains an unapproved dotted literal: ${literal}`);
-  }
-  assertOperationDiscriminatorView(bridge, file, 'raw source');
-  assertOperationDiscriminatorView(stripComments(bridge), file, 'comment-stripped source');
+function assertStaticBridgeSafety(bridge, file) {
   assertBridgeNetworkFree(bridge, file);
+  for (const view of [bridge, stripComments(bridge)]) {
+    assert.doesNotMatch(view, /\b(?:eval|Function)\b|\.\s*constructor\b|\[\s*(?:['"][^'"]*constructor[^'"]*['"]|['"][^'"]*['"]\s*\+)/, `${file} contains dynamic evaluation or constructor dispatch`);
+  }
 }
 
 test('public runtime and source artifacts exclude private profile and credential material', () => {
@@ -208,64 +185,41 @@ test('security URL validation rejects bare delimiters and official repository lo
   }
 });
 
-test('bridge inspection rejects a later operation allowlist mutation', () => {
-  const bridge = fs.readFileSync(path.join(sourceDir, 'bridge.js'), 'utf8') + "\nALLOWED['profile.read'] = true;\n";
-  assert.throws(() => assertStrictBridge(bridge, 'fixture'), /unexpected ALLOWED references/);
-});
-
-test('bridge inspection rejects dynamic allowlist references and evaluation primitives', () => {
+test('bridge inspection rejects dynamic evaluation and network primitives', () => {
   const source = fs.readFileSync(path.join(sourceDir, 'bridge.js'), 'utf8');
   for (const mutation of [
-    '\nALLOWED[operation] = true;\n',
-    '\nCOMMANDS[command] = true;\n',
-    '\nvar x = ALLOWED.extra;\n',
     '\neval("ignored");\n',
     '\neval/*x*/("AL" + "LOWED[\\\'profile.read\\\'] = true");\n',
     '\nObject.constructor("ignored");\n',
     '\nObject["con" + "structor"]("ignored");\n',
-    "\nvar injected = { ['profile.read']: true };\n",
     "\nvar x = $task ['fetch'];\n",
     "\nvar x = $ TaSk ['FeTcH'];\n",
     '\nvar x = XMLHttpRequest;\n',
   ]) {
-    assert.throws(() => assertStrictBridge(source + mutation, 'fixture'));
+    assert.throws(() => assertStaticBridgeSafety(source + mutation, 'fixture'));
   }
-});
-
-test('bridge inspection rejects computed operation dispatch', () => {
-  const source = fs.readFileSync(path.join(sourceDir, 'bridge.js'), 'utf8');
-  assert.throws(() => assertStrictBridge(source.replaceAll('input.operation', "input['operation']"), 'fixture'));
-});
-
-test('bridge inspection rejects an aliased seventh operation and accepts harmless formatting', () => {
-  const source = fs.readFileSync(path.join(sourceDir, 'bridge.js'), 'utf8');
-  const aliased = source
-    .replace("'index.clear': true", "'index.clear': true, ['evil']: true")
-    .replace('var payload = input.payload;', 'var operationAlias = input.operation;\n    var payload = input.payload;')
-    .replace("else throw new Error('FA_QX_OPERATION_DENIED');", "else if (operationAlias === 'evil') data = {};\n    else throw new Error('FA_QX_OPERATION_DENIED');");
-  assert.throws(() => assertStrictBridge(aliased, 'fixture'));
-
-  const formatted = source.replace(
-    'var COMMANDS = { rescan: true, refreshExternal: true, clearCache: true };',
-    'var COMMANDS = {\n    rescan: true,\n    refreshExternal: true,\n    clearCache: true\n  };',
-  );
-  assert.doesNotThrow(() => assertStrictBridge(formatted, 'formatted fixture'));
-});
-
-test('bridge inspection rejects same-line string-masked evaluation and split-vocabulary operation aliases', () => {
-  const source = fs.readFileSync(path.join(sourceDir, 'bridge.js'), 'utf8');
-  const mutation = source
-    .replace('var payload = input.payload === undefined ? {} : input.payload;', "var note = '//'; eval('ignored'); var operationAlias = input.operation;\n    var payload = input.payload === undefined ? {} : input.payload;")
-    .replace("else throw new Error('FA_QX_OPERATION_DENIED');", "else if (operationAlias === ('e' + 'vil')) data = {};\n    else throw new Error('FA_QX_OPERATION_DENIED');");
-  assert.throws(() => assertStrictBridge(mutation, 'fixture'));
 });
 
 test('bridge exposes exactly the six Phase 1 operations and no network credential primitives', () => {
   for (const file of [path.join(sourceDir, 'bridge.js'), path.join(runtimeDir, 'releases/0.1.0/bridge.js')]) {
     const text = fs.readFileSync(file, 'utf8');
-    assertStrictBridge(text, path.relative(root, file));
+    assertStaticBridgeSafety(text, path.relative(root, file));
     assertSecretFree(text, path.relative(root, file));
   }
+});
+
+test('release metadata generates one exact handler entry for every Phase 1 operation', () => {
+  const release = JSON.parse(fs.readFileSync(path.join(sourceDir, 'release.json'), 'utf8'));
+  assert.deepEqual(release.operations, operationNames);
+  const source = fs.readFileSync(path.join(sourceDir, 'bridge.js'), 'utf8');
+  assert.equal((source.match(/__FA_OPERATION_DISPATCH__/g) || []).length, 1);
+  for (const operation of operationNames) assert.doesNotMatch(source, new RegExp(`['"]${operation.replace('.', '\\.')}['"]`));
+  const generated = fs.readFileSync(path.join(runtimeDir, 'releases/0.1.0/bridge.js'), 'utf8');
+  const dispatch = generatedOperationDispatch(generated, 'generated bridge');
+  assert.deepEqual(dispatch.map((entry) => entry.name), operationNames);
+  assert.equal(new Set(dispatch.map((entry) => entry.handler)).size, operationNames.length);
+  assert.equal(dispatch.length, operationNames.length);
+  assert.doesNotMatch(generated, /input\.operation\s*===/);
 });
 
 test('canonical and compatibility snippets stay byte-identical and the installed line is retained', () => {

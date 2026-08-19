@@ -1,12 +1,15 @@
 (function () {
   var NS = 'kaaaaai.steam-family-qx.';
-  var ALLOWED = {
-    'runtime.health': true,
-    'config.get': true,
-    'command.ack': true,
-    'index.publish': true,
-    'index.read': true,
-    'index.clear': true
+  var SCHEMA = 1;
+  var INDEX_SCHEMA = 1;
+  var HOSTS = ["store.steampowered.com","keylol.com","steamdb.keylol.com"];
+  var OPERATIONS = {
+    'runtime.health': { handler: runtimeHealth, storeOnly: false },
+    'config.get': { handler: configGet, storeOnly: false },
+    'command.ack': { handler: commandAck, storeOnly: true },
+    'index.publish': { handler: indexPublish, storeOnly: true },
+    'index.read': { handler: indexRead, storeOnly: false },
+    'index.clear': { handler: indexClear, storeOnly: true }
   };
   var DEFAULTS = {
     autoScan: true,
@@ -95,7 +98,7 @@
     return raw === 'error' || raw === 'warn' || raw === 'info' || raw === 'debug' ? raw : fallback;
   }
 
-  function config() {
+  function configGet() {
     return {
       autoScan: readBoolean('settings.autoScan', DEFAULTS.autoScan),
       storeMarking: readBoolean('settings.storeMarking', DEFAULTS.storeMarking),
@@ -127,7 +130,7 @@
   }
 
   function validateManifest(value) {
-    if (!hasOnlyKeys(value, ['schema', 'generation', 'sourceUpdatedAt', 'chunks', 'checksum']) || value.schema !== 1 || !isSafeInteger(value.generation) || value.generation <= 0 ||
+    if (!hasOnlyKeys(value, ['schema', 'generation', 'sourceUpdatedAt', 'chunks', 'checksum']) || value.schema !== INDEX_SCHEMA || !isSafeInteger(value.generation) || value.generation <= 0 ||
       !isSafeInteger(value.sourceUpdatedAt) || value.sourceUpdatedAt < 0 || !isSafeInteger(value.chunks) ||
       value.chunks < 1 || value.chunks > 32 || typeof value.checksum !== 'string' || !/^[0-9a-f]{8}$/.test(value.checksum)) {
       throw new Error('FA_QX_INDEX_INVALID');
@@ -231,14 +234,14 @@
     return { generation: manifest.generation };
   }
 
-  function publishIndex(payload) {
+  function indexPublish(payload) {
     if (!isObject(payload)) throw new Error('FA_QX_INDEX_INVALID');
     if (payload.phase === 'stage') return stageIndex(payload);
     if (payload.phase === 'commit') return commitIndex(payload);
     throw new Error('FA_QX_INDEX_INVALID');
   }
 
-  function readIndex(payload) {
+  function indexRead(payload) {
     if (!isObject(payload)) throw new Error('FA_QX_INDEX_INVALID');
     var manifest = installedManifest();
     if (payload.part === 'manifest') {
@@ -254,7 +257,7 @@
     return { chunk: chunks[payload.chunkIndex], checksum: fnv1a(chunks[payload.chunkIndex]) };
   }
 
-  function clearIndex() {
+  function indexClear() {
     var manifest = installedManifest();
     if (manifest === null) return { cleared: true };
     removeGeneration(manifest.generation, manifest.chunks, true, true);
@@ -262,7 +265,7 @@
     return { cleared: true };
   }
 
-  function acknowledge(payload) {
+  function commandAck(payload) {
     if (!isObject(payload) || !Object.prototype.hasOwnProperty.call(COMMANDS, payload.command) || !isSafeInteger(payload.id)) throw new Error('FA_QX_COMMAND_INVALID');
     var name = payload.command;
     var acknowledgement = readCounter('acknowledgements.' + name, DEFAULTS.acknowledgements[name]);
@@ -272,12 +275,12 @@
     return { acknowledged: payload.id };
   }
 
-  function health() {
+  function runtimeHealth() {
     var record = {
       release: '0.1.0',
-      buildId: '75332714dfcb',
+      buildId: '2cac1c6d1a5f',
       coreVersion: null,
-      schema: 1,
+      schema: SCHEMA,
       timestamp: Date.now()
     };
     writeJson('health', record);
@@ -291,17 +294,10 @@
   try {
     if (utf8ByteLength(raw) > 524288) throw new Error('FA_QX_BODY_TOO_LARGE');
     var input = JSON.parse(raw || '{}');
-    if (!isObject(input) || !Object.prototype.hasOwnProperty.call(ALLOWED, input.operation)) throw new Error('FA_QX_OPERATION_DENIED');
-    if (input.release !== '0.1.0' || input.buildId !== '75332714dfcb') throw new Error('FA_QX_VERSION_MISMATCH');
+    if (!isObject(input) || !Object.prototype.hasOwnProperty.call(OPERATIONS, input.operation)) throw new Error('FA_QX_OPERATION_DENIED');
+    if (input.release !== '0.1.0' || input.buildId !== '2cac1c6d1a5f') throw new Error('FA_QX_VERSION_MISMATCH');
     var payload = input.payload === undefined ? {} : input.payload;
-    var data;
-    if (input.operation === 'runtime.health') data = health();
-    else if (input.operation === 'config.get') data = config();
-    else if (input.operation === 'command.ack') data = acknowledge(payload);
-    else if (input.operation === 'index.publish') data = publishIndex(payload);
-    else if (input.operation === 'index.read') data = readIndex(payload);
-    else if (input.operation === 'index.clear') data = clearIndex();
-    else throw new Error('FA_QX_OPERATION_DENIED');
+    var data = OPERATIONS[input.operation].handler(payload);
     result = { ok: true, data: data };
   } catch (error) {
     status = /DENIED/.test(String(error.message)) ? 403 : 400;

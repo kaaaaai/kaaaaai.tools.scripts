@@ -9,6 +9,31 @@ const sourceNames = ['injector.js', 'page-runtime.js', 'bridge.js'];
 const sources = Object.fromEntries(sourceNames.map((name) => [name, fs.readFileSync(path.join(sourceDir, name), 'utf8')]));
 const sha256 = (text) => crypto.createHash('sha256').update(text).digest('hex');
 
+function invalidMetadata(detail) {
+  const error = new Error('FA_QX_METADATA_INVALID: ' + detail);
+  error.code = 'FA_QX_METADATA_INVALID';
+  throw error;
+}
+
+function validateRelease(value) {
+  const required = ['release', 'coreVersion', 'schema', 'indexSchema', 'routePrefix', 'preferenceNamespace', 'hosts', 'operations', 'bridgeTimeoutMs'];
+  for (const field of required) {
+    if (!Object.prototype.hasOwnProperty.call(value, field)) invalidMetadata('missing ' + field);
+  }
+  if (typeof value.release !== 'string' || !/^[0-9A-Za-z.-]+$/.test(value.release) || value.release.includes('/') || value.release.includes('..')) invalidMetadata('release');
+  if (value.coreVersion !== null && typeof value.coreVersion !== 'string') invalidMetadata('coreVersion');
+  if (!Number.isSafeInteger(value.schema) || value.schema <= 0) invalidMetadata('schema');
+  if (!Number.isSafeInteger(value.indexSchema) || value.indexSchema <= 0) invalidMetadata('indexSchema');
+  if (typeof value.routePrefix !== 'string' || !/^\/[A-Za-z0-9._~/-]+$/.test(value.routePrefix) || value.routePrefix.endsWith('/')) invalidMetadata('routePrefix');
+  if (typeof value.preferenceNamespace !== 'string' || !/^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+$/.test(value.preferenceNamespace)) invalidMetadata('preferenceNamespace');
+  if (!Array.isArray(value.hosts) || value.hosts.length === 0 || new Set(value.hosts).size !== value.hosts.length || value.hosts.some((host) => typeof host !== 'string' || !/^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(host))) invalidMetadata('hosts');
+  if (!Array.isArray(value.operations) || value.operations.length === 0 || new Set(value.operations).size !== value.operations.length || value.operations.some((operation) => typeof operation !== 'string' || !/^[a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*)+$/.test(operation))) invalidMetadata('operations');
+  if (!Number.isSafeInteger(value.bridgeTimeoutMs) || value.bridgeTimeoutMs <= 0) invalidMetadata('bridgeTimeoutMs');
+  return value;
+}
+
+validateRelease(release);
+
 function canonicalJson(value) {
   if (Array.isArray(value)) return '[' + value.map(canonicalJson).join(',') + ']';
   if (value && typeof value === 'object') {
@@ -17,15 +42,26 @@ function canonicalJson(value) {
   return JSON.stringify(value);
 }
 
-if (typeof release.release !== 'string' || !/^[0-9A-Za-z.-]+$/.test(release.release) || release.release.includes('/') || release.release.includes('..')) {
-  throw new Error('Invalid release identifier');
-}
-
 const buildId = sha256(canonicalJson(release) + sources['injector.js'] + sources['page-runtime.js'] + sources['bridge.js']).slice(0, 12);
+const operationHandler = (operation) => {
+  const parts = operation.split('.');
+  return parts[0] + parts.slice(1).map((part) => part[0].toUpperCase() + part.slice(1)).join('');
+};
+const operationDispatch = '{\n' + release.operations.map((operation) => {
+  const verb = operation.split('.')[1];
+  const storeOnly = verb === 'publish' || verb === 'clear' || verb === 'ack';
+  return "    '" + operation + "': { handler: " + operationHandler(operation) + ', storeOnly: ' + storeOnly + ' }';
+}).join(',\n') + '\n  }';
 const replacements = {
   __FA_RELEASE__: release.release,
   __FA_BUILD_ID__: buildId,
   __FA_ROUTE_PREFIX__: release.routePrefix,
+  __FA_PREFERENCE_NAMESPACE__: release.preferenceNamespace,
+  __FA_SCHEMA__: String(release.schema),
+  __FA_INDEX_SCHEMA__: String(release.indexSchema),
+  __FA_HOSTS__: JSON.stringify(release.hosts),
+  __FA_OPERATION_DISPATCH__: operationDispatch,
+  __FA_BRIDGE_TIMEOUT_MS__: String(release.bridgeTimeoutMs),
 };
 
 function render(source) {
@@ -53,6 +89,10 @@ const manifest = {
   schema: release.schema,
   indexSchema: release.indexSchema,
   routePrefix: release.routePrefix,
+  preferenceNamespace: release.preferenceNamespace,
+  hosts: release.hosts,
+  operations: release.operations,
+  bridgeTimeoutMs: release.bridgeTimeoutMs,
   buildId,
   assets: Object.fromEntries(Object.entries(assets).map(([name, body]) => [name, { sha256: sha256(body) }])),
 };
