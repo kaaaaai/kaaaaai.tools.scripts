@@ -93,7 +93,11 @@ function stripComments(text) {
 function declaredNames(bridge, name) {
   const match = bridge.match(new RegExp(`var ${name} = \\{([\\s\\S]*?)\\};`));
   assert.ok(match, `bridge must declare ${name}`);
-  return [...match[1].matchAll(/(?:'([^']+)'|([A-Za-z_$][\w$]*))\s*:\s*true/g)].map((entry) => entry[1] || entry[2]);
+  const entry = /(?:'([^']+)'|([A-Za-z_$][\w$]*))\s*:\s*true/g;
+  const names = [...match[1].matchAll(entry)].map((item) => item[1] || item[2]);
+  const remainder = match[1].replace(entry, '').replace(/[\s,]/g, '');
+  assert.equal(remainder, '', `bridge ${name} declaration contains unrecognized syntax`);
+  return names;
 }
 
 function assertOnlyMembershipReferences(bridge, name, member, file) {
@@ -115,13 +119,18 @@ function assertStrictBridge(bridge, file) {
   assert.deepEqual(declaredNames(bridge, 'COMMANDS'), ['rescan', 'refreshExternal', 'clearCache'], `${file} command allowlist changed`);
   assertOnlyMembershipReferences(bridge, 'ALLOWED', 'input.operation', file);
   assertOnlyMembershipReferences(bridge, 'COMMANDS', 'payload.command', file);
-  const dispatched = [...bridge.matchAll(/\binput\.operation\s*===\s*'([^']+)'/g)].map((entry) => entry[1]);
+  const executable = stripComments(bridge);
+  const membership = /Object\s*\.\s*prototype\s*\.\s*hasOwnProperty\s*\.\s*call\s*\(\s*ALLOWED\s*,\s*input\s*\.\s*operation\s*\)/g;
+  assert.equal([...executable.matchAll(membership)].length, 1, `${file} must use input.operation exactly once for allowlist membership`);
+  const equality = /input\s*\.\s*operation\s*===\s*'([^']+)'/g;
+  const dispatched = [...executable.matchAll(equality)].map((entry) => entry[1]);
   assert.deepEqual(dispatched, operationNames, `${file} dispatch changed`);
   const dotted = [...bridge.matchAll(/['"]([A-Za-z][A-Za-z0-9_-]*(?:\.[A-Za-z0-9_.-]+)+)['"]/g)].map((entry) => entry[1]);
   for (const literal of dotted) {
     assert.ok(operationNames.includes(literal) || preferenceLiterals.includes(literal), `${file} contains an unapproved dotted literal: ${literal}`);
   }
-  const executable = stripComments(bridge);
+  const remainingOperationUses = executable.replace(membership, '').replace(equality, '');
+  assert.doesNotMatch(remainingOperationUses, /\binput\s*\.\s*operation\b/, `${file} contains an unapproved input.operation use`);
   assert.doesNotMatch(executable, /\b(?:eval|Function)\b|\.\s*constructor\b|\[\s*(?:['"][^'"]*constructor[^'"]*['"]|['"][^'"]*['"]\s*\+)/, `${file} contains dynamic evaluation or constructor dispatch`);
   assert.doesNotMatch(executable, /\binput\s*\[/, `${file} uses computed operation access`);
   assert.doesNotMatch(executable, /\b[A-Za-z_$][\w$]*\s*\[[^\]]+\]\s*\(/, `${file} contains dynamic function dispatch`);
@@ -222,6 +231,21 @@ test('bridge inspection rejects dynamic allowlist references and evaluation prim
 test('bridge inspection rejects computed operation dispatch', () => {
   const source = fs.readFileSync(path.join(sourceDir, 'bridge.js'), 'utf8');
   assert.throws(() => assertStrictBridge(source.replaceAll('input.operation', "input['operation']"), 'fixture'));
+});
+
+test('bridge inspection rejects an aliased seventh operation and accepts harmless formatting', () => {
+  const source = fs.readFileSync(path.join(sourceDir, 'bridge.js'), 'utf8');
+  const aliased = source
+    .replace("'index.clear': true", "'index.clear': true, ['evil']: true")
+    .replace('var payload = input.payload;', 'var operationAlias = input.operation;\n    var payload = input.payload;')
+    .replace("else throw new Error('FA_QX_OPERATION_DENIED');", "else if (operationAlias === 'evil') data = {};\n    else throw new Error('FA_QX_OPERATION_DENIED');");
+  assert.throws(() => assertStrictBridge(aliased, 'fixture'));
+
+  const formatted = source.replace(
+    'var COMMANDS = { rescan: true, refreshExternal: true, clearCache: true };',
+    'var COMMANDS = {\n    rescan: true,\n    refreshExternal: true,\n    clearCache: true\n  };',
+  );
+  assert.doesNotThrow(() => assertStrictBridge(formatted, 'formatted fixture'));
 });
 
 test('bridge exposes exactly the six Phase 1 operations and no network credential primitives', () => {
