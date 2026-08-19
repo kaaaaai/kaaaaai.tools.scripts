@@ -1,11 +1,18 @@
 (function () {
-  var NS = '__FA_PREFERENCE_NAMESPACE__.';
-  var SCHEMA = __FA_SCHEMA__;
-  var INDEX_SCHEMA = __FA_INDEX_SCHEMA__;
-  var HOSTS = __FA_HOSTS__;
-  var BRIDGE_ROUTE = '__FA_ROUTE_PREFIX__/bridge';
-  var MUTATION_HOST = '__FA_MUTATION_HOST__';
-  var OPERATIONS = __FA_OPERATION_DISPATCH__;
+  var NS = 'kaaaaai.steam-family-qx.';
+  var SCHEMA = 1;
+  var INDEX_SCHEMA = 1;
+  var HOSTS = ["store.steampowered.com","keylol.com","steamdb.keylol.com"];
+  var BRIDGE_ROUTE = '/fa-qx/v1/bridge';
+  var MUTATION_HOST = 'store.steampowered.com';
+  var OPERATIONS = {
+    'runtime.health': { handler: runtimeHealth, storeOnly: false },
+    'config.get': { handler: configGet, storeOnly: false },
+    'command.ack': { handler: commandAck, storeOnly: true },
+    'index.publish': { handler: indexPublish, storeOnly: true },
+    'index.read': { handler: indexRead, storeOnly: false },
+    'index.clear': { handler: indexClear, storeOnly: true }
+  };
   var DEFAULTS = {
     autoScan: true,
     storeMarking: true,
@@ -398,8 +405,8 @@
   function runtimeHealth(payload) {
     requireEmptyPayload(payload);
     var record = {
-      release: '__FA_RELEASE__',
-      buildId: '__FA_BUILD_ID__',
+      release: '0.1.1',
+      buildId: '29751cc25d50',
       coreVersion: null,
       schema: SCHEMA,
       timestamp: Date.now()
@@ -423,7 +430,7 @@
     var input = JSON.parse(raw || '{}');
     if (!hasOnlyKeys(input, ['operation', 'payload', 'release', 'buildId'])) throw new Error('FA_QX_REQUEST_INVALID');
     if (!Object.prototype.hasOwnProperty.call(OPERATIONS, input.operation)) throw new Error('FA_QX_OPERATION_DENIED');
-    if (input.release !== '__FA_RELEASE__' || input.buildId !== '__FA_BUILD_ID__') throw new Error('FA_QX_VERSION_MISMATCH');
+    if (input.release !== '0.1.1' || input.buildId !== '29751cc25d50') throw new Error('FA_QX_VERSION_MISMATCH');
     var operation = OPERATIONS[input.operation];
     if (operation.storeOnly && requestHost !== MUTATION_HOST) throw new Error('FA_QX_HOST_DENIED');
     var data = operation.handler(input.payload);

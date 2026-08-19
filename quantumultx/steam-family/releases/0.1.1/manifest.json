@@ -1,0 +1,34 @@
+{
+  "release": "0.1.1",
+  "coreVersion": null,
+  "schema": 1,
+  "indexSchema": 1,
+  "routePrefix": "/fa-qx/v1",
+  "preferenceNamespace": "kaaaaai.steam-family-qx",
+  "hosts": [
+    "store.steampowered.com",
+    "keylol.com",
+    "steamdb.keylol.com"
+  ],
+  "operations": [
+    "runtime.health",
+    "config.get",
+    "command.ack",
+    "index.publish",
+    "index.read",
+    "index.clear"
+  ],
+  "bridgeTimeoutMs": 8000,
+  "buildId": "29751cc25d50",
+  "assets": {
+    "injector.js": {
+      "sha256": "92ceecb950be95753937a5884c62e5ae0a98afb73a83c5587950cbfb23b8eb83"
+    },
+    "runtime-asset.js": {
+      "sha256": "c20c58e133e08566f6e7d708bc6a71e2438bcb6603312ec741183849bc8f71df"
+    },
+    "bridge.js": {
+      "sha256": "6c66080a009e4cdb66a62cabd959fbd6e4f5c067d3eb2b00f8b7aba063c018b4"
+    }
+  }
+}

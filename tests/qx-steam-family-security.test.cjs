@@ -201,7 +201,7 @@ test('bridge inspection rejects dynamic evaluation and network primitives', () =
 });
 
 test('bridge exposes exactly the six Phase 1 operations and no network credential primitives', () => {
-  for (const file of [path.join(sourceDir, 'bridge.js'), path.join(runtimeDir, 'releases/0.1.0/bridge.js')]) {
+  for (const file of [path.join(sourceDir, 'bridge.js'), path.join(runtimeDir, 'releases/0.1.1/bridge.js')]) {
     const text = fs.readFileSync(file, 'utf8');
     assertStaticBridgeSafety(text, path.relative(root, file));
     assertSecretFree(text, path.relative(root, file));
@@ -214,7 +214,7 @@ test('release metadata generates one exact handler entry for every Phase 1 opera
   const source = fs.readFileSync(path.join(sourceDir, 'bridge.js'), 'utf8');
   assert.equal((source.match(/__FA_OPERATION_DISPATCH__/g) || []).length, 1);
   for (const operation of operationNames) assert.doesNotMatch(source, new RegExp(`['"]${operation.replace('.', '\\.')}['"]`));
-  const generated = fs.readFileSync(path.join(runtimeDir, 'releases/0.1.0/bridge.js'), 'utf8');
+  const generated = fs.readFileSync(path.join(runtimeDir, 'releases/0.1.1/bridge.js'), 'utf8');
   const dispatch = generatedOperationDispatch(generated, 'generated bridge');
   assert.deepEqual(dispatch.map((entry) => entry.name), operationNames);
   assert.equal(new Set(dispatch.map((entry) => entry.handler)).size, operationNames.length);
@@ -260,7 +260,7 @@ test('installation documentation describes the production runtime without the di
   assert.match(readme, /version mismatch/i);
   assert.match(readme, /redacted error/i);
   assert.match(readme, /调试角标[\s\S]*badge/i);
-  assert.match(readme, /0\.1\.0[\s\S]*not installed[\s\S]*schema.*1[\s\S]*index schema.*1/i);
+  assert.match(readme, /0\.1\.1[\s\S]*not installed[\s\S]*schema.*1[\s\S]*index schema.*1/i);
   assert.match(readme, new RegExp(`https://raw\\.githubusercontent\\.com/kaaaaai/kaaaaai\\.tools\\.scripts/${rollbackCommit}/quantumultx/steam-family/rollback/poc-7425947\\.snippet`));
   assert.match(readme, /replace\s+only this module's remote-resource URL[\s\S]*refresh Quantumult X[\s\S]*restore the main compatibility URL later/i);
   assert.doesNotMatch(readme, /prior versioned directory/i);

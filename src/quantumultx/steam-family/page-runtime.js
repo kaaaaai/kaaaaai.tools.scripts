@@ -40,15 +40,17 @@
       }
 
       Promise.resolve().then(function () {
-        return fetch('__FA_ROUTE_PREFIX__/bridge', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { 'Content-Type': 'application/json', 'X-FA-QX-Build': '__FA_BUILD_ID__' },
-          body: JSON.stringify({ operation: operation, payload: payload === undefined ? {} : payload, release: '__FA_RELEASE__', buildId: '__FA_BUILD_ID__' })
+        var envelope = JSON.stringify({ operation: operation, payload: payload === undefined ? {} : payload, release: '__FA_RELEASE__', buildId: '__FA_BUILD_ID__' });
+        return fetch('__FA_ROUTE_PREFIX__/bridge?request=' + encodeURIComponent(envelope), {
+          method: 'GET',
+          credentials: 'same-origin'
         });
       }).then(function (response) {
-        if (!response.ok) throw new Error('FA_QX_BRIDGE_HTTP_' + response.status);
-        return response.json();
+        var parsed = typeof response.json === 'function' ? response.json().catch(function () { return null; }) : Promise.resolve(null);
+        return parsed.then(function (result) {
+          if (!response.ok) throw new Error(result && result.error ? result.error : 'FA_QX_BRIDGE_HTTP_' + response.status);
+          return result;
+        });
       }).then(function (result) {
         if (!result || result.ok !== true) throw new Error(result && result.error ? result.error : 'FA_QX_BRIDGE_INVALID');
         settle(resolve, result.data);

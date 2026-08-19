@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { runQx } = require('./helpers/run-qx-script.cjs');
 
-const releaseDir = path.resolve(__dirname, '..', 'quantumultx/steam-family/releases/0.1.0');
+const releaseDir = path.resolve(__dirname, '..', 'quantumultx/steam-family/releases/0.1.1');
 const bridge = () => fs.readFileSync(path.join(releaseDir, 'bridge.js'), 'utf8');
 const releaseManifest = () => JSON.parse(fs.readFileSync(path.join(releaseDir, 'manifest.json'), 'utf8'));
 const preferences = new Map();
@@ -39,14 +39,15 @@ function reset() {
 
 function call(operation, payload, options = {}) {
   const { release, buildId } = releaseManifest();
-  const body = options.body === undefined
+  const envelope = options.body === undefined
     ? JSON.stringify({ operation, payload, release, buildId })
     : options.body;
+  const baseUrl = options.url === undefined ? 'https://store.steampowered.com/fa-qx/v1/bridge' : options.url;
+  const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}request=${encodeURIComponent(envelope)}`;
   const { calls } = runQx(bridge(), {
     $request: {
-      body,
-      method: options.method === undefined ? 'POST' : options.method,
-      url: options.url === undefined ? 'https://store.steampowered.com/fa-qx/v1/bridge' : options.url,
+      method: options.method === undefined ? 'GET' : options.method,
+      url,
     },
     $prefs: {
       valueForKey(key) {
@@ -73,18 +74,43 @@ function call(operation, payload, options = {}) {
   return { ...JSON.parse(calls[0].body), status: Number(calls[0].status.match(/\d{3}/)[0]) };
 }
 
+function callViaEchoUrl(operation, payload) {
+  const { release, buildId } = releaseManifest();
+  const envelope = encodeURIComponent(JSON.stringify({ operation, payload, release, buildId }));
+  const { calls } = runQx(bridge(), {
+    $request: {
+      method: 'GET',
+      url: `https://store.steampowered.com/fa-qx/v1/bridge?request=${envelope}`,
+    },
+    $prefs: {
+      valueForKey(key) { return preferences.has(key) ? preferences.get(key) : null; },
+      setValueForKey(value, key) { preferences.set(key, String(value)); return true; },
+      removeValueForKey(key) { return preferences.delete(key); },
+    },
+  });
+  assert.equal(calls.length, 1);
+  return { ...JSON.parse(calls[0].body), status: Number(calls[0].status.match(/\d{3}/)[0]) };
+}
+
 function resetPreferenceObservations() {
   preferenceEvents.length = 0;
   preferenceReadCount = 0;
 }
 
-test('bridge requires POST on the exact virtual route and a configured host', { concurrency: false }, () => {
+test('bridge requires GET with one encoded envelope on the exact virtual route and a configured host', { concurrency: false }, () => {
   reset();
-  assert.equal(call('runtime.health', {}, { method: 'GET' }).error, 'FA_QX_METHOD_DENIED');
-  assert.equal(call('runtime.health', {}, { method: 'post' }).error, 'FA_QX_METHOD_DENIED');
+  assert.equal(call('runtime.health', {}, { method: 'POST' }).error, 'FA_QX_METHOD_DENIED');
+  assert.equal(call('runtime.health', {}, { method: 'get' }).error, 'FA_QX_METHOD_DENIED');
   assert.equal(call('runtime.health', {}, { url: 'https://store.steampowered.com/fa-qx/v1/bridge/' }).error, 'FA_QX_ROUTE_DENIED');
   assert.equal(call('runtime.health', {}, { url: 'https://store.steampowered.com/fa-qx/v1/bridge?extra=1' }).error, 'FA_QX_ROUTE_DENIED');
   assert.equal(call('runtime.health', {}, { url: 'https://evil.example/fa-qx/v1/bridge' }).error, 'FA_QX_HOST_DENIED');
+});
+
+test('echo-compatible bridge accepts an encoded request envelope using only documented request fields', { concurrency: false }, () => {
+  reset();
+  const result = callViaEchoUrl('runtime.health', {});
+  assert.equal(result.status, 200);
+  assert.equal(result.data.release, releaseManifest().release);
 });
 
 test('configured community hosts are read-only while Steam may mutate', { concurrency: false }, () => {

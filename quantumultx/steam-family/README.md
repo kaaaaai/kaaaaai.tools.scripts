@@ -60,7 +60,7 @@ badge as a health check. With debug enabled, these states have exact meanings:
   health check.
 - **`bridge ✓`:** the local bridge accepted the matching release and build and
   returned the health/configuration data. A successful diagnostic reads
-  `FA QX 0.1.0 · runtime ✓ · bridge ✓`.
+  `FA QX 0.1.1 · runtime ✓ · bridge ✓`.
 - **Version mismatch:** `FA_QX_VERSION_MISMATCH` means the runtime and bridge
   release/build are from different versions; refresh the remote resource so
   both assets come from the same release directory.
@@ -72,7 +72,7 @@ badge as a health check. With debug enabled, these states have exact meanings:
 
 | Component | Value |
 | --- | --- |
-| Runtime | `0.1.0` |
+| Runtime | `0.1.1` |
 | Core | `not installed` |
 | Schema | `1` |
 | Index schema | `1` |
