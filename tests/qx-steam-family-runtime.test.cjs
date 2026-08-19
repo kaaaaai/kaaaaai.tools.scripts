@@ -62,6 +62,16 @@ function documentStub() {
   };
 }
 
+function currentScriptStub(buildId = currentBuildId(), release = '0.1.0', src) {
+  const marker = buildId;
+  return {
+    src: src === undefined ? `https://store.steampowered.com/fa-qx/v1/runtime.js?release=${release}&build=${buildId}` : src,
+    getAttribute(name) {
+      return name === 'data-fa-qx-bootstrap' ? marker : null;
+    },
+  };
+}
+
 function currentBuildId() {
   return JSON.parse(fs.readFileSync(path.join(releaseDir, 'manifest.json'), 'utf8')).buildId;
 }
@@ -88,7 +98,7 @@ async function waitFor(condition) {
   assert.fail('condition did not become true');
 }
 
-function runPageRuntime({ config = { debug: false }, health, fetchImpl, document = documentStub(), window = {}, runtime = pageRuntime(), PromiseImpl = Promise } = {}) {
+function runPageRuntime({ config = { debug: false }, health, fetchImpl, document = documentStub(), currentScript, window = {}, runtime = pageRuntime(), PromiseImpl = Promise, setTimeoutImpl = setTimeout, clearTimeoutImpl = clearTimeout } = {}) {
   const postedRequests = [];
   const runtimeHealth = health || { release: '0.1.0', buildId: currentBuildId(), schema: 1 };
   const fetch = fetchImpl || ((url, options) => {
@@ -97,8 +107,38 @@ function runPageRuntime({ config = { debug: false }, health, fetchImpl, document
     const data = request.operation === 'runtime.health' ? runtimeHealth : config;
     return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, data }) });
   });
-  vm.runInNewContext(runtime, { window, document, fetch, Promise: PromiseImpl });
+  const runtimeBuild = (runtime.match(/buildId: '([0-9a-f]{12})'/) || [])[1] || currentBuildId();
+  document.currentScript = currentScript === undefined ? currentScriptStub(runtimeBuild) : currentScript;
+  vm.runInNewContext(runtime, {
+    window,
+    document,
+    fetch,
+    Promise: PromiseImpl,
+    setTimeout: setTimeoutImpl,
+    clearTimeout: clearTimeoutImpl,
+  });
   return { window, document, postedRequests };
+}
+
+function fakeTimers() {
+  let nextId = 1;
+  const pending = new Map();
+  return {
+    setTimeout(callback, delay) {
+      const id = nextId++;
+      pending.set(id, { callback, delay });
+      return id;
+    },
+    clearTimeout(id) { pending.delete(id); },
+    fireNext() {
+      const entry = pending.entries().next().value;
+      assert.ok(entry, 'expected a pending timer');
+      pending.delete(entry[0]);
+      entry[1].callback();
+      return entry[1].delay;
+    },
+    count() { return pending.size; },
+  };
 }
 
 test('injector preserves non-HTML and injects the runtime only once', () => {
@@ -113,6 +153,93 @@ test('injector preserves non-HTML and injects the runtime only once', () => {
 test('runtime asset returns the page runtime as JavaScript', () => {
   assert.equal(runAsset().headers['Content-Type'], 'application/javascript; charset=utf-8');
   assert.match(runAsset().body, /window\.__FA_QX__/);
+});
+
+test('runtime rejects absent, invalid, and mixed-build currentScript before bridge startup', async () => {
+  const buildId = currentBuildId();
+  const cases = [
+    null,
+    { src: currentScriptStub().src },
+    currentScriptStub('111111111111'),
+    {
+      src: `https://store.steampowered.com/fa-qx/v1/runtime.js?release=0.1.0&build=111111111111`,
+      getAttribute(name) { return name === 'data-fa-qx-bootstrap' ? buildId : null; },
+    },
+    {
+      src: `https://store.steampowered.com/fa-qx/v1/runtime.js?release=0.1.1&build=${buildId}`,
+      getAttribute(name) { return name === 'data-fa-qx-bootstrap' ? buildId : null; },
+    },
+  ];
+  for (const currentScript of cases) {
+    const { window, document, postedRequests } = runPageRuntime({ currentScript });
+    await assert.rejects(window.__FA_QX__.ready, (error) => error && error.message === 'FA_QX_VERSION_MISMATCH');
+    assert.equal(window.__FA_QX__.state, 'error');
+    assert.equal(window.__FA_QX__.error, 'FA_QX_VERSION_MISMATCH');
+    assert.equal(postedRequests.length, 0);
+    const badge = document.querySelector('#fa-qx-diagnostic');
+    assert.match(badge.textContent, /runtime ✕/);
+    assert.match(badge.textContent, /bridge ✕/);
+  }
+});
+
+test('bridge timeout settles after 8000 ms, clears its timer, and ignores a late response', async () => {
+  const timers = fakeTimers();
+  const response = deferred();
+  const { window, document } = runPageRuntime({
+    fetchImpl() { return response.promise; },
+    setTimeoutImpl: timers.setTimeout,
+    clearTimeoutImpl: timers.clearTimeout,
+  });
+  await waitFor(() => timers.count() === 1);
+  assert.equal(timers.fireNext(), 8000);
+  await assert.rejects(window.__FA_QX__.ready, (error) => error && error.message === 'FA_QX_BRIDGE_TIMEOUT');
+  const timedOutApi = window.__FA_QX__;
+  const timedOutBadge = document.querySelector('#fa-qx-diagnostic');
+  assert.equal(timedOutApi.state, 'error');
+  assert.equal(timedOutApi.error, 'FA_QX_BRIDGE_TIMEOUT');
+  assert.match(timedOutBadge.textContent, /runtime ✓/);
+  assert.match(timedOutBadge.textContent, /bridge ✕/);
+  assert.equal(timers.count(), 0);
+  response.resolve({
+    ok: true,
+    json: () => Promise.resolve({ ok: true, data: { release: '0.1.0', buildId: currentBuildId(), schema: 1 } }),
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(window.__FA_QX__, timedOutApi);
+  assert.equal(timedOutApi.state, 'error');
+  assert.equal(document.querySelector('#fa-qx-diagnostic'), timedOutBadge);
+});
+
+test('same-build reinjection replaces an errored runtime but remains idempotent while starting or ready', async () => {
+  const window = {};
+  const document = documentStub();
+  const failed = runPageRuntime({
+    window,
+    document,
+    fetchImpl() { return Promise.reject(new Error('private failure')); },
+  });
+  await assert.rejects(failed.window.__FA_QX__.ready, /FA_QX_UNKNOWN/);
+  const failedApi = window.__FA_QX__;
+  const recovered = runPageRuntime({ window, document });
+  const recoveredApi = window.__FA_QX__;
+  assert.notEqual(recoveredApi, failedApi);
+  await recoveredApi.ready;
+  assert.equal(recoveredApi.state, 'ready');
+
+  runPageRuntime({ window, document });
+  assert.equal(window.__FA_QX__, recoveredApi);
+
+  const startingWindow = {};
+  const startingHealth = deferred();
+  runPageRuntime({ window: startingWindow, fetchImpl() { return startingHealth.promise; } });
+  const startingApi = startingWindow.__FA_QX__;
+  runPageRuntime({ window: startingWindow });
+  assert.equal(startingWindow.__FA_QX__, startingApi);
+  startingHealth.resolve({
+    ok: true,
+    json: () => Promise.resolve({ ok: true, data: { release: '0.1.0', buildId: currentBuildId(), schema: 1 } }),
+  });
+  await startingApi.ready;
 });
 
 test('page runtime becomes ready after health and configuration requests without a default diagnostic', async () => {
@@ -162,6 +289,8 @@ test('page runtime redacts rejected health responses in its diagnostic', async (
   assert.equal(window.__FA_QX__.state, 'error');
   const badge = document.querySelector('#fa-qx-diagnostic');
   assert.ok(badge);
+  assert.match(badge.textContent, /runtime ✓/);
+  assert.match(badge.textContent, /bridge ✕/);
   assert.match(badge.textContent, /FA_QX_BRIDGE_HTTP_503/);
   assert.doesNotMatch(badge.textContent, new RegExp(responseBody));
 });
