@@ -1,8 +1,9 @@
 # Steam Family Sharing for Quantumult X
 
-This is the Phase 1 Steam Family runtime for Quantumult X. It installs a
-small page runtime and a strictly allowlisted local bridge; it does **not** yet
-scan or import a Steam Family library.
+This release installs the complete Steam Family v2.04 core in Quantumult X.
+It provides the top Steam navigation entry, family-library scanning and
+persistence, Steam/Keylol markers, and the complete analysis interface while
+using strictly allowlisted local bridges.
 
 ## Prerequisites
 
@@ -60,7 +61,10 @@ badge as a health check. With debug enabled, these states have exact meanings:
   health check.
 - **`bridge ✓`:** the local bridge accepted the matching release and build and
   returned the health/configuration data. A successful diagnostic reads
-  `FA QX 0.2.0 · runtime ✓ · bridge ✓`.
+  `FA QX 0.2.0 · runtime ✓ · bridge ✓ · core 2.04 ✓`.
+- **`core 2.04 ✓`:** the compatibility adapter, pinned dependencies, and the
+  full family-library core all loaded. The top “我的家庭库” entry is then
+  installed by the same v2.04 UI source as the userscript edition.
 - **Version mismatch:** `FA_QX_VERSION_MISMATCH` means the runtime and bridge
   release/build are from different versions; refresh the remote resource so
   both assets come from the same release directory.
@@ -73,15 +77,20 @@ badge as a health check. With debug enabled, these states have exact meanings:
 | Component | Value |
 | --- | --- |
 | Runtime | `0.2.0` |
-| Core | `not installed` |
+| Core | `2.04` |
 | Schema | `1` |
 | Index schema | `1` |
 
 ## Emergency rollback or remove
 
-Phase 1 has no prior production release. For an emergency rollback, replace
-only this module's remote-resource URL with this immutable rollback resource,
-then refresh Quantumult X:
+To roll back to the bridge-only `0.1.1` release, replace only this module's remote-resource URL
+with the immutable resource below, then refresh Quantumult X:
+
+```text
+https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/72b0a4dd70be042456071d0dd47cf6b761608560/quantumultx/steam-family/steam-family.snippet
+```
+
+For the earlier injection-only diagnostic, use:
 
 ```text
 https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/c16b1c22b430088609f027edbbb9be32755d4cff/quantumultx/steam-family/rollback/poc-7425947.snippet

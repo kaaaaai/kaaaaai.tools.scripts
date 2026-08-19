@@ -7434,55 +7434,35 @@ function getUserNameBySteamId(access_token,family_member) {
 // token: 当前登录用户的 webapi_token；sid: 家庭成员 steamid
 // 返回 { total_count, games: [{appid,name,playtime_2weeks,playtime_forever,img_icon_url}] }
 function fetchMemberRecentlyPlayed(token, sid) {
-    return new Promise((resolve) => {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", `https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v1/?access_token=${token}&steamid=${sid}`, true);
-        xhr.onload = function() {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                try {
-                    var json = JSON.parse(xhr.responseText).response;
-                    resolve({
-                        total_count: json.total_count || 0,
-                        games: (json.games || []).map(function(g) {
-                            return {
-                                appid: g.appid,
-                                name: g.name,
-                                playtime_2weeks: g.playtime_2weeks || 0,
-                                playtime_forever: g.playtime_forever || 0,
-                                img_icon_url: g.img_icon_url || ''
-                            };
-                        })
-                    });
-                    return;
-                } catch(e){console.warn('[FA]', e)}
-            }
-            resolve(null);
+    var url = `https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v1/?access_token=${token}&steamid=${sid}`;
+    return faGmGetJson(url, 20000).then(function(result) {
+        var json = result && result.response;
+        if (!json) return null;
+        return {
+            total_count: json.total_count || 0,
+            games: (json.games || []).map(function(g) {
+                return {
+                    appid: g.appid,
+                    name: g.name,
+                    playtime_2weeks: g.playtime_2weeks || 0,
+                    playtime_forever: g.playtime_forever || 0,
+                    img_icon_url: g.img_icon_url || ''
+                };
+            })
         };
-        xhr.onerror = function() { resolve(null); };
-        xhr.send();
     });
 }
 
 // 获取成员所有拥有游戏的总游玩时长（v1.38 修复：GetOwnedGames 含全部游戏，而非仅最近2周游玩的）
 function fetchMemberOwnedGamesTotal(token, sid) {
-    return new Promise((resolve) => {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", `https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?access_token=${token}&steamid=${sid}&include_played_free_games=1`, true);
-        xhr.onload = function() {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                try {
-                    var json = JSON.parse(xhr.responseText).response;
-                    var games = json.games || [];
-                    var totalMinutes = 0;
-                    games.forEach(function(g) { totalMinutes += (g.playtime_forever || 0); });
-                    resolve({ totalMinutes: totalMinutes, gameCount: json.game_count || games.length });
-                    return;
-                } catch(e){console.warn('[FA]', e)}
-            }
-            resolve(null);
-        };
-        xhr.onerror = function() { resolve(null); };
-        xhr.send();
+    var url = `https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?access_token=${token}&steamid=${sid}&include_played_free_games=1`;
+    return faGmGetJson(url, 20000).then(function(result) {
+        var json = result && result.response;
+        if (!json) return null;
+        var games = json.games || [];
+        var totalMinutes = 0;
+        games.forEach(function(g) { totalMinutes += (g.playtime_forever || 0); });
+        return { totalMinutes: totalMinutes, gameCount: json.game_count || games.length };
     });
 }
 

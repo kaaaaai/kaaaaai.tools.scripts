@@ -2,6 +2,7 @@
   'use strict';
   var SCHEMA = __FA_SCHEMA__;
   var BRIDGE_TIMEOUT_MS = __FA_BRIDGE_TIMEOUT_MS__;
+  var CORE_VERSION = '__FA_CORE_VERSION__';
 
   function redactError(error) {
     var code = error && error.message;
@@ -77,11 +78,103 @@
     var badge = document.createElement('div');
     badge.id = 'fa-qx-diagnostic';
     badge.style.cssText = 'position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:2147483647;pointer-events:none;padding:6px 8px;border-radius:6px;background:#1b1b1b;color:#fff;font:12px/1.3 -apple-system,BlinkMacSystemFont,sans-serif;';
-    badge.textContent = 'FA QX __FA_RELEASE__ · runtime ' + (runtimeLoaded ? '✓' : '✕') + ' · bridge ' + (errorCode ? '✕' : '✓') + (errorCode ? ' · ' + errorCode : '');
+    badge.textContent = 'FA QX __FA_RELEASE__ · runtime ' + (runtimeLoaded ? '✓' : '✕') + ' · bridge ' + (errorCode ? '✕' : '✓') + (api.coreState === 'ready' ? ' · core ' + CORE_VERSION + ' ✓' : '') + (errorCode ? ' · ' + errorCode : '');
     document.documentElement.appendChild(badge);
   }
 
-  var api = { release: '__FA_RELEASE__', buildId: '__FA_BUILD_ID__', state: 'starting', bridge: bridge, ready: null };
+  function loadScript(name) {
+    return new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      var settled = false;
+      var timer = setTimeout(function () { finish(reject, new Error('FA_QX_CORE_ASSET_TIMEOUT')); }, BRIDGE_TIMEOUT_MS);
+      function finish(callback, value) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        callback(value);
+      }
+      script.src = '__FA_ROUTE_PREFIX__/asset/' + name + '.js?release=__FA_RELEASE__&build=__FA_BUILD_ID__';
+      script.onload = function () { finish(resolve); };
+      script.onerror = function () { finish(reject, new Error('FA_QX_CORE_ASSET_FAILED')); };
+      (document.head || document.documentElement).appendChild(script);
+    });
+  }
+
+  function applyCoreConfig(config) {
+    try {
+      if (window.saves && window.saves.settings) {
+        if (typeof config.autoScan === 'boolean') window.saves.settings.isAutoScan = config.autoScan;
+        if (typeof config.storeMarking === 'boolean') window.saves.settings.enableStoreMarking = config.storeMarking;
+        if (typeof window.savestorage === 'function') window.savestorage();
+      }
+    } catch (_) {}
+  }
+
+  function pendingCommand(config, name) {
+    var commands = config && config.commands;
+    var acknowledgements = config && config.acknowledgements;
+    var command = commands && commands[name];
+    var acknowledgement = acknowledgements && acknowledgements[name];
+    return Number.isSafeInteger(command) && command > 0 && Number.isSafeInteger(acknowledgement) && command > acknowledgement ? command : 0;
+  }
+
+  function recordCommandError(name, error) {
+    api.commandErrors = api.commandErrors || {};
+    api.commandErrors[name] = redactError(error);
+  }
+
+  function acknowledgeCommand(name, id) {
+    return bridge('command.ack', { command: name, id: id });
+  }
+
+  function scheduleClearCache(config) {
+    var id = pendingCommand(config, 'clearCache');
+    if (!id || !window.faCompat || typeof window.faCompat.confirm !== 'function' || typeof window.savestorage !== 'function') return;
+    var confirmation = window.faCompat.confirm('清理家庭库缓存', '此操作会删除 QX 中的家庭库扫描缓存与跨站标记数据，之后需要重新扫描。', '确认清理', '取消');
+    if (!confirmation || typeof confirmation.done !== 'function') return;
+    confirmation.done(function () {
+      bridge('index.clear', {}).then(function () {
+        window.savestorage(true);
+        return acknowledgeCommand('clearCache', id);
+      }).catch(function (error) { recordCommandError('clearCache', error); });
+    });
+  }
+
+  function processCommands(config) {
+    var chain = Promise.resolve();
+    var rescan = pendingCommand(config, 'rescan');
+    if (rescan && typeof window.scan === 'function') {
+      chain = chain.then(function () {
+        window.scan(true);
+        return acknowledgeCommand('rescan', rescan);
+      }).catch(function (error) { recordCommandError('rescan', error); });
+    }
+    var refreshExternal = pendingCommand(config, 'refreshExternal');
+    if (refreshExternal) {
+      chain = chain.then(function () {
+        var jobs = [];
+        if (typeof window.faLoadBundleData === 'function') jobs.push(window.faLoadBundleData());
+        if (typeof window.faLoadGotyData === 'function') jobs.push(window.faLoadGotyData(true));
+        if (typeof window.faLoadDlcDatabase === 'function') jobs.push(window.faLoadDlcDatabase());
+        return Promise.all(jobs).then(function () { return acknowledgeCommand('refreshExternal', refreshExternal); });
+      }).catch(function (error) { recordCommandError('refreshExternal', error); });
+    }
+    return chain.then(function () { scheduleClearCache(config); });
+  }
+
+  function startCore(config) {
+    if (typeof window.__FA_QX_INSTALL_ADAPTER__ !== 'function') throw new Error('FA_QX_CORE_ADAPTER_MISSING');
+    api.coreState = 'loading';
+    var adapter = window.__FA_QX_INSTALL_ADAPTER__(bridge, api);
+    return adapter.hydrate().then(function () { return loadScript('chart'); })
+      .then(function () { return loadScript('pinyin'); })
+      .then(function () { return loadScript('app-detail'); })
+      .then(function () { return loadScript('core'); })
+      .then(function () { applyCoreConfig(config); return processCommands(config); })
+      .then(function () { api.coreState = 'ready'; api.coreVersion = CORE_VERSION; });
+  }
+
+  var api = { release: '__FA_RELEASE__', buildId: '__FA_BUILD_ID__', coreVersion: null, coreState: 'idle', state: 'starting', bridge: bridge, ready: null };
   window.__FA_QX__ = api;
   if (!handshakeValid) {
     api.state = 'error';
@@ -94,9 +187,11 @@
   api.ready = bridge('runtime.health', {}).then(validateHealth).then(function () {
     return bridge('config.get', {});
   }).then(function (config) {
+    api.config = config;
+    return startCore(config).then(function () { return config; });
+  }).then(function (config) {
     if (window.__FA_QX__ === api) {
       api.state = 'ready';
-      api.config = config;
       renderDiagnostic(config, null, true);
     }
     return api;

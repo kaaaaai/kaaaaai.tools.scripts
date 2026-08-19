@@ -34,10 +34,18 @@ function pageRuntime() {
 
 function documentStub() {
   const nodes = [];
+  const loadedScripts = [];
   const documentElement = {
     appendChild(node) {
       node.parentNode = documentElement;
       nodes.push(node);
+      if (node.tagName === 'SCRIPT') {
+        loadedScripts.push(node.src);
+        Promise.resolve().then(() => {
+          if (typeof document.onScriptAppend === 'function') document.onScriptAppend(node);
+          if (typeof node.onload === 'function') node.onload();
+        });
+      }
       return node;
     },
     removeChild(node) {
@@ -48,10 +56,10 @@ function documentStub() {
       return node;
     },
   };
-  return {
+  const document = {
     documentElement,
-    createElement() {
-      return { id: '', parentNode: null, textContent: '', style: { cssText: '' } };
+    createElement(tagName) {
+      return { id: '', tagName: String(tagName || '').toUpperCase(), parentNode: null, textContent: '', src: '', style: { cssText: '' } };
     },
     querySelector(selector) {
       return selector === '#fa-qx-diagnostic' ? nodes.find((node) => node.id === 'fa-qx-diagnostic') || null : null;
@@ -59,7 +67,9 @@ function documentStub() {
     diagnosticCount() {
       return nodes.filter((node) => node.id === 'fa-qx-diagnostic').length;
     },
+    loadedScripts,
   };
+  return document;
 }
 
 function currentScriptStub(buildId = currentBuildId(), release = '0.2.0', src) {
@@ -113,6 +123,8 @@ function runPageRuntime({ config = { debug: false }, health, fetchImpl, document
     window,
     document,
     fetch,
+    URL,
+    AbortController,
     Promise: PromiseImpl,
     setTimeout: setTimeoutImpl,
     clearTimeout: clearTimeoutImpl,
@@ -160,6 +172,212 @@ test('injector preserves non-HTML and injects the runtime only once', () => {
 test('runtime asset returns the page runtime as JavaScript', () => {
   assert.equal(runAsset().headers['Content-Type'], 'application/javascript; charset=utf-8');
   assert.match(runAsset().body, /window\.__FA_QX__/);
+});
+
+test('full-core runtime installs its adapter and loads pinned dependencies before the v2.04 core', async () => {
+  const document = documentStub();
+  const { window } = runPageRuntime({ document, config: { debug: true } });
+  await window.__FA_QX__.ready;
+  assert.equal(window.__FA_QX__.coreVersion, '2.04');
+  assert.equal(window.__FA_QX__.coreState, 'ready');
+  assert.equal(typeof window.GM_getValue, 'function');
+  assert.equal(typeof window.GM_xmlhttpRequest, 'function');
+  assert.deepEqual(document.loadedScripts.map((src) => src.replace(/\?.*$/, '')), [
+    '/fa-qx/v1/asset/chart.js',
+    '/fa-qx/v1/asset/pinyin.js',
+    '/fa-qx/v1/asset/app-detail.js',
+    '/fa-qx/v1/asset/core.js',
+  ]);
+  assert.match(document.querySelector('#fa-qx-diagnostic').textContent, /core 2\.04 ✓/);
+});
+
+test('GM request adapter sends Steam credentials only in the analyze-proxy POST body', async () => {
+  const proxyCalls = [];
+  const window = { location: { href: 'https://store.steampowered.com/', origin: 'https://store.steampowered.com' } };
+  const fetchImpl = (url, options) => {
+    if (url === '/fa-qx/v1/proxy') {
+      proxyCalls.push({ url, options });
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ ok: true, data: { status: 200, statusText: 'OK', responseText: '{"response":{}}', responseURL: 'https://api.steampowered.com/IFamilyGroupsService/GetFamilyGroupForUser/v1/' } }),
+      });
+    }
+    const request = requestFromBridgeUrl(url);
+    const data = request.operation === 'runtime.health'
+      ? { release: '0.2.0', buildId: currentBuildId(), schema: 1 }
+      : { debug: false };
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, data }) });
+  };
+  const page = runPageRuntime({ window, fetchImpl });
+  await page.window.__FA_QX__.ready;
+  const token = 'test-token.private-value';
+  await new Promise((resolve, reject) => {
+    page.window.GM_xmlhttpRequest({
+      method: 'GET',
+      url: `https://api.steampowered.com/IFamilyGroupsService/GetFamilyGroupForUser/v1/?access_token=${token}&include_family_group_response=true`,
+      onload(response) { assert.equal(response.status, 200); resolve(); },
+      onerror: reject,
+    });
+  });
+  assert.equal(proxyCalls.length, 1);
+  assert.equal(proxyCalls[0].url, '/fa-qx/v1/proxy');
+  assert.equal(proxyCalls[0].options.method, 'POST');
+  assert.doesNotMatch(proxyCalls[0].url, new RegExp(token.replace('.', '\\.')));
+  const envelope = JSON.parse(proxyCalls[0].options.body);
+  assert.equal(envelope.operation, 'steam.familyGroup');
+  assert.equal(envelope.payload.token, token);
+});
+
+test('community runtime hydrates the compact family index before loading the shared core', async () => {
+  const compact = JSON.stringify({
+    version: 1,
+    current: 0,
+    members: [['76561198000000000', 'Kai']],
+    games: [['10', [0], 1234]],
+  });
+  const manifest = { schema: 1, generation: 7, sourceUpdatedAt: 1234, chunks: 1, checksum: 'ignored-by-page' };
+  const window = { location: { href: 'https://keylol.com/thread-1-1-1.html', origin: 'https://keylol.com', hostname: 'keylol.com', host: 'keylol.com' } };
+  const fetchImpl = (url) => {
+    const request = requestFromBridgeUrl(url);
+    let data;
+    if (request.operation === 'runtime.health') data = { release: '0.2.0', buildId: currentBuildId(), schema: 1 };
+    else if (request.operation === 'config.get') data = { debug: false };
+    else if (request.operation === 'index.read' && request.payload.part === 'manifest') data = manifest;
+    else if (request.operation === 'index.read' && request.payload.part === 'chunk') data = { chunk: compact };
+    else throw new Error(`unexpected operation ${request.operation}`);
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, data }) });
+  };
+  const page = runPageRuntime({ window, fetchImpl });
+  await page.window.__FA_QX__.ready;
+  const saves = page.window.GM_getValue('saves');
+  assert.deepEqual(Array.from(saves.familyGameList.GameList), ['10']);
+  assert.deepEqual(Array.from(saves.familyGameList.GameInfo['10'].owners), ['76561198000000000']);
+  assert.equal(saves.familyInfo.steamIdtoName['76561198000000000'], 'Kai');
+});
+
+test('Steam runtime publishes a compact cross-origin index after the core saves a scan', async () => {
+  const requests = [];
+  const window = { location: { href: 'https://store.steampowered.com/', origin: 'https://store.steampowered.com', hostname: 'store.steampowered.com', host: 'store.steampowered.com' } };
+  const fetchImpl = (url) => {
+    const request = requestFromBridgeUrl(url);
+    requests.push(request);
+    let data;
+    if (request.operation === 'runtime.health') data = { release: '0.2.0', buildId: currentBuildId(), schema: 1 };
+    else if (request.operation === 'config.get') data = { debug: false };
+    else if (request.operation === 'index.read') data = null;
+    else if (request.operation === 'index.publish') data = request.payload.phase === 'stage' ? { staged: request.payload.chunkIndex } : { generation: request.payload.manifest.generation };
+    else throw new Error(`unexpected operation ${request.operation}`);
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, data }) });
+  };
+  const page = runPageRuntime({ window, fetchImpl });
+  await page.window.__FA_QX__.ready;
+  page.window.GM_setValue('saves', {
+    version: 20240501,
+    steamid: '76561198000000000',
+    lastupDateTime: 1234,
+    familyInfo: { family_member: [{ steamid: '76561198000000000', userName: 'Kai' }], steamIdtoName: { '76561198000000000': 'Kai' } },
+    familyGameList: { GameList: ['10'], GameInfo: { '10': { name: 'Test Game', owners: ['76561198000000000'], time: 1234 } } },
+  });
+  await waitFor(() => requests.some((request) => request.operation === 'index.publish' && request.payload.phase === 'commit'));
+  const stage = requests.find((request) => request.operation === 'index.publish' && request.payload.phase === 'stage');
+  assert.ok(stage);
+  const compact = JSON.parse(stage.payload.chunk);
+  assert.deepEqual(Array.from(compact.members[0]), ['76561198000000000', 'Kai']);
+  assert.deepEqual(Array.from(compact.games[0]), ['10', [0], 1234, 'Test Game']);
+  assert.doesNotMatch(JSON.stringify(compact), /token|cookie|authorization/i);
+});
+
+test('runtime applies BoxJS scan and marking settings to the loaded shared core', async () => {
+  const window = { location: { href: 'https://store.steampowered.com/', origin: 'https://store.steampowered.com', hostname: 'store.steampowered.com', host: 'store.steampowered.com' } };
+  const document = documentStub();
+  document.onScriptAppend = (script) => {
+    if (/\/asset\/core\.js/.test(script.src)) window.saves = { settings: { isAutoScan: true, enableStoreMarking: true } };
+  };
+  const page = runPageRuntime({ window, document, config: { debug: false, autoScan: false, storeMarking: false, commands: {}, acknowledgements: {} } });
+  await page.window.__FA_QX__.ready;
+  assert.equal(page.window.saves.settings.isAutoScan, false);
+  assert.equal(page.window.saves.settings.enableStoreMarking, false);
+});
+
+test('runtime executes pending BoxJS maintenance commands once and acknowledges them', async () => {
+  const requests = [];
+  const calls = { rescan: 0, bundle: 0, goty: 0, dlc: 0 };
+  const window = { location: { href: 'https://store.steampowered.com/', origin: 'https://store.steampowered.com', hostname: 'store.steampowered.com', host: 'store.steampowered.com' } };
+  const document = documentStub();
+  document.onScriptAppend = (script) => {
+    if (!/\/asset\/core\.js/.test(script.src)) return;
+    window.saves = { settings: { isAutoScan: true, enableStoreMarking: true } };
+    window.scan = () => { calls.rescan += 1; };
+    window.faLoadBundleData = () => { calls.bundle += 1; return Promise.resolve(); };
+    window.faLoadGotyData = (force) => { assert.equal(force, true); calls.goty += 1; return Promise.resolve(); };
+    window.faLoadDlcDatabase = () => { calls.dlc += 1; return Promise.resolve(); };
+  };
+  const config = {
+    debug: false,
+    commands: { rescan: 2, refreshExternal: 3, clearCache: 0 },
+    acknowledgements: { rescan: 1, refreshExternal: 2, clearCache: 0 },
+  };
+  const fetchImpl = (url) => {
+    const request = requestFromBridgeUrl(url);
+    requests.push(request);
+    const data = request.operation === 'runtime.health'
+      ? { release: '0.2.0', buildId: currentBuildId(), schema: 1 }
+      : request.operation === 'config.get'
+        ? config
+        : { acknowledged: request.payload.id };
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, data }) });
+  };
+  const page = runPageRuntime({ window, document, fetchImpl });
+  await page.window.__FA_QX__.ready;
+  assert.deepEqual(calls, { rescan: 1, bundle: 1, goty: 1, dlc: 1 });
+  assert.deepEqual(requests.filter((request) => request.operation === 'command.ack').map((request) => request.payload), [
+    { command: 'rescan', id: 2 },
+    { command: 'refreshExternal', id: 3 },
+  ]);
+});
+
+test('runtime requires page confirmation before clearing QX family data', async () => {
+  const requests = [];
+  let confirmDone;
+  let deleted = false;
+  const window = { location: { href: 'https://store.steampowered.com/', origin: 'https://store.steampowered.com', hostname: 'store.steampowered.com', host: 'store.steampowered.com' } };
+  const document = documentStub();
+  document.onScriptAppend = (script) => {
+    if (!/\/asset\/core\.js/.test(script.src)) return;
+    window.saves = { settings: {} };
+    window.savestorage = (isDelete) => { deleted = isDelete === true; };
+    window.faCompat = {
+      confirm() {
+        return { done(callback) { confirmDone = callback; return this; } };
+      },
+    };
+  };
+  const config = {
+    debug: false,
+    commands: { rescan: 0, refreshExternal: 0, clearCache: 4 },
+    acknowledgements: { rescan: 0, refreshExternal: 0, clearCache: 3 },
+  };
+  const fetchImpl = (url) => {
+    const request = requestFromBridgeUrl(url);
+    requests.push(request);
+    const data = request.operation === 'runtime.health'
+      ? { release: '0.2.0', buildId: currentBuildId(), schema: 1 }
+      : request.operation === 'config.get'
+        ? config
+        : request.operation === 'index.clear'
+          ? { cleared: true }
+          : { acknowledged: request.payload.id };
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, data }) });
+  };
+  const page = runPageRuntime({ window, document, fetchImpl });
+  await page.window.__FA_QX__.ready;
+  assert.equal(deleted, false);
+  assert.equal(requests.some((request) => request.operation === 'index.clear'), false);
+  assert.equal(typeof confirmDone, 'function');
+  confirmDone();
+  await waitFor(() => requests.some((request) => request.operation === 'command.ack' && request.payload.command === 'clearCache'));
+  assert.equal(deleted, true);
+  assert.deepEqual(requests.filter((request) => request.operation === 'index.clear').length, 1);
 });
 
 test('page runtime sends the bridge envelope through an echo-compatible GET URL', async () => {

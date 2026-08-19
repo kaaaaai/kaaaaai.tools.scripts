@@ -16,7 +16,7 @@ test('full-core release publishes the v2.04 QX contract and required assets', ()
   assert.equal(metadata.coreVersion, '2.04');
   assert.deepEqual(metadata.proxyOperations, [
     'steam.familyGroup', 'steam.sharedApps', 'steam.playerLinks', 'steam.recentGames',
-    'steam.ownedGames', 'steam.storeItems', 'external.bundle', 'external.dlc',
+    'steam.ownedGames', 'steam.storeItems', 'steam.appDetails', 'steam.wishlist', 'external.bundle', 'external.dlc',
     'external.goty', 'external.exchangeRates', 'external.augmentedRates'
   ]);
   const fullReleaseDir = path.join(root, 'quantumultx/steam-family/releases/0.2.0');

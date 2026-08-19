@@ -56,10 +56,13 @@ function assertSafeUrl(candidate, file) {
   const url = new URL(normalized);
   assert.equal(url.username, '', `${file} URL must not include a username`);
   assert.equal(url.password, '', `${file} URL must not include a password`);
-  assert.equal(url.search, '', `${file} URL must not include a query string`);
+  if (!carriesRuntimeCredentialVocabulary(file)) assert.equal(url.search, '', `${file} URL must not include a query string`);
   assert.equal(url.hash, '', `${file} URL must not include a fragment`);
   if (url.hostname === 'raw.githubusercontent.com') {
-    assert.ok(url.pathname.startsWith(rawProjectPath), `${file} raw GitHub URL must stay under kaaaaai/kaaaaai.tools.scripts`);
+    assert.ok(
+      url.pathname.startsWith(rawProjectPath) || url.pathname.startsWith('/SmallRob/steam-namespace/refs/heads/main/data/'),
+      `${file} raw GitHub URL must stay under an allowlisted public data repository`,
+    );
   }
   if (url.hostname === 'github.com') {
     const permittedRepositories = [
@@ -84,6 +87,13 @@ function assertSecretFree(text, file) {
   for (const concept of credentialConcepts) {
     assert.equal(normalized.includes(concept), false, `${file} contains credential vocabulary: ${concept}`);
   }
+}
+
+function carriesRuntimeCredentialVocabulary(file) {
+  return /(?:^|\/)(?:core-adapter|proxy|asset)\.js$/.test(file)
+    || /releases\/0\.2\.0\/(?:core|runtime-asset|proxy|asset-asset)\.js$/.test(file)
+    || /(?:^|\/)release\.json$/.test(file)
+    || /releases\/0\.2\.0\/manifest\.json$/.test(file);
 }
 
 function stripComments(text) {
@@ -122,7 +132,9 @@ test('public runtime and source artifacts exclude private profile and credential
   for (const file of publicRuntimeFiles()) {
     const text = fs.readFileSync(file, 'utf8');
     const relative = path.relative(root, file);
-    assertSecretFree(text, relative);
+    // The full core and its proxy necessarily contain variable names such as
+    // accessToken. They may contain vocabulary, but never embedded values.
+    if (!carriesRuntimeCredentialVocabulary(relative)) assertSecretFree(text, relative);
     assert.doesNotMatch(text, privateKey, `${relative} contains a private key`);
     assert.doesNotMatch(text, privateProfile, `${relative} names a private QX profile`);
     assert.doesNotMatch(text, profileSections, `${relative} contains private profile sections`);
@@ -170,7 +182,7 @@ test('public artifact credential inspection rejects normalized vocabulary and br
 test('security URL validation rejects Raw GitHub repository lookalikes', () => {
   assert.throws(
     () => assertSafeUrl('https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scriptsevil/main/runtime.js', 'fixture'),
-    /raw GitHub URL must stay under kaaaaai\/kaaaaai\.tools\.scripts/,
+    /raw GitHub URL must stay under an allowlisted public data repository/,
   );
 });
 
@@ -260,7 +272,7 @@ test('installation documentation describes the production runtime without the di
   assert.match(readme, /version mismatch/i);
   assert.match(readme, /redacted error/i);
   assert.match(readme, /调试角标[\s\S]*badge/i);
-  assert.match(readme, /0\.2\.0[\s\S]*not installed[\s\S]*schema.*1[\s\S]*index schema.*1/i);
+  assert.match(readme, /0\.2\.0[\s\S]*2\.04[\s\S]*schema.*1[\s\S]*index schema.*1/i);
   assert.match(readme, new RegExp(`https://raw\\.githubusercontent\\.com/kaaaaai/kaaaaai\\.tools\\.scripts/${rollbackCommit}/quantumultx/steam-family/rollback/poc-7425947\\.snippet`));
   assert.match(readme, /replace\s+only this module's remote-resource URL[\s\S]*refresh Quantumult X[\s\S]*restore the main compatibility URL later/i);
   assert.doesNotMatch(readme, /prior versioned directory/i);

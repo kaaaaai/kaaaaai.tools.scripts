@@ -406,7 +406,7 @@
     requireEmptyPayload(payload);
     var record = {
       release: '0.2.0',
-      buildId: '89b8c8fc8896',
+      buildId: '8f01fe80d5bc',
       coreVersion: '2.04',
       schema: SCHEMA,
       timestamp: Date.now()
@@ -430,7 +430,7 @@
     var input = JSON.parse(raw || '{}');
     if (!hasOnlyKeys(input, ['operation', 'payload', 'release', 'buildId'])) throw new Error('FA_QX_REQUEST_INVALID');
     if (!Object.prototype.hasOwnProperty.call(OPERATIONS, input.operation)) throw new Error('FA_QX_OPERATION_DENIED');
-    if (input.release !== '0.2.0' || input.buildId !== '89b8c8fc8896') throw new Error('FA_QX_VERSION_MISMATCH');
+    if (input.release !== '0.2.0' || input.buildId !== '8f01fe80d5bc') throw new Error('FA_QX_VERSION_MISMATCH');
     var operation = OPERATIONS[input.operation];
     if (operation.storeOnly && requestHost !== MUTATION_HOST) throw new Error('FA_QX_HOST_DENIED');
     var data = operation.handler(input.payload);

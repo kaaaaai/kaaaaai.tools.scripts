@@ -25,6 +25,8 @@
     "steam.recentGames",
     "steam.ownedGames",
     "steam.storeItems",
+    "steam.appDetails",
+    "steam.wishlist",
     "external.bundle",
     "external.dlc",
     "external.goty",

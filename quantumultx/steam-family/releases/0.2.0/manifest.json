@@ -25,6 +25,8 @@
     "steam.recentGames",
     "steam.ownedGames",
     "steam.storeItems",
+    "steam.appDetails",
+    "steam.wishlist",
     "external.bundle",
     "external.dlc",
     "external.goty",
@@ -46,25 +48,25 @@
     }
   },
   "bridgeTimeoutMs": 8000,
-  "buildId": "89b8c8fc8896",
+  "buildId": "8f01fe80d5bc",
   "assets": {
     "injector.js": {
-      "sha256": "9396a5cd8cf11e50b8e126e1f8295963b5ac80b86633ddadb63ed96e70fc75ce"
+      "sha256": "7056dc864a9c0528978a7d59bea1188e28b72f9a8c213f3ca9ce5463e47a3586"
     },
     "runtime-asset.js": {
-      "sha256": "d152d4549827755bfd48c44be422c7884f34bf8501001ae20be714eb90fbe000"
+      "sha256": "4a33e803c72cea588d5ebbe1519cbeb82f928d665aec51e5ef52b68a4151a59e"
     },
     "bridge.js": {
-      "sha256": "42431b6fdc06517689ab1db091abc2efc418e59564a18f7c60a9eb0ec003dda5"
+      "sha256": "25d7cb7130db6fb4a558caaf37d8943c72d9806b97a4a6a85799625a0dcac2bf"
     },
     "proxy.js": {
-      "sha256": "ce29dd5a1cb62078afcc683583d53d9973010e8eeb0eb95d1abded865f48a318"
+      "sha256": "d291cef3da936392b7e172a0dff8c2cbabed545af15ee45fb54d6d074289a801"
     },
     "asset-asset.js": {
-      "sha256": "8739cdd3849111709dd85a6341ce5ca9038b00afee9424d6c0143672c258822a"
+      "sha256": "c825506b9aa6f08dac06a544ea7964abe0352816e72179c06d8f08e119463dc0"
     },
     "core.js": {
-      "sha256": "8eb7408ab27fe1b59e51bfdb735867d01a76c95c15c98b6329e765752da7835d"
+      "sha256": "512a2048107a75c90bb067013121ea560414d48443b0a440db9420ad0bda9114"
     }
   }
 }
