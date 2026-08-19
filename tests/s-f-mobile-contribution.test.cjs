@@ -69,6 +69,8 @@ test('stacks Shared Distribution Detail and preserves tap drill-down', () => {
 
   assert.match(source, /\.fa-share-detail-columns\{display:grid!important;grid-template-columns:1fr!important/);
   assert.match(source, /\.fa-share-detail-games a\[data-fa-appid\]\{white-space:normal!important/);
+  assert.match(source, /fa-share-detail-games-list/);
+  assert.match(source, /#familyAnalysisPanel \.fa-share-detail-games-list\{overflow:visible!important\}/);
   assert.match(source, /onClick:\s*function\(evt, elements\)[\s\S]*renderShareDetailOverlay\(\)/);
   assert.match(source, /#faShareDetailBack[\s\S]*min-height:44px/);
 });

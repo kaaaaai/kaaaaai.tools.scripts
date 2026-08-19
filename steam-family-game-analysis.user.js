@@ -2723,7 +2723,7 @@ function faEnrichAppTypes(appIds) {
                     + '<span style="font-size:10px;color:#54a0ff;background:rgba(84,160,255,0.1);padding:2px 8px;border-radius:8px;font-weight:600;">' + sharedGames.length + '</span>'
                     + '</div>';
                 if (displayGames.length > 0) {
-                    html += '<div style="flex:1;min-height:0;overflow-y:auto;">';
+                    html += '<div class="fa-share-detail-games-list" style="flex:1;min-height:0;overflow-y:auto;">';
                     displayGames.forEach(function(g) {
                         var ownerNames = g.owners.map(function(sid) { return idMap[sid] || ('ID:' + String(sid).slice(-4)); });
                         var ownerAvatars = g.owners.slice(0, 4).map(function(sid) {
@@ -7746,6 +7746,7 @@ function faInjectGlobalStyle() {
         + '#familyAnalysisPanel #faExcPrevPage,#familyAnalysisPanel #faExcNextPage{min-height:44px!important}'
         + '#familyAnalysisPanel .fa-share-detail-columns{display:grid!important;grid-template-columns:1fr!important;gap:10px!important;min-width:0!important}'
         + '#familyAnalysisPanel .fa-share-detail-analysis,#familyAnalysisPanel .fa-share-detail-games{min-width:0!important;width:100%!important;flex:none!important;overflow:visible!important}'
+        + '#familyAnalysisPanel .fa-share-detail-games-list{overflow:visible!important}'
         + '#familyAnalysisPanel .fa-share-detail-games a[data-fa-appid]{white-space:normal!important;overflow-wrap:anywhere}'
         + '#familyAnalysisPanel #faShareDetailBack,#familyAnalysisPanel #faSdPrevPage,#familyAnalysisPanel #faSdNextPage{min-height:44px!important}'
         + '.fa-global-search-pop{left:0;right:0;min-width:0;max-width:none}'
