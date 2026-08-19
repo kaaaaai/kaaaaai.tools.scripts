@@ -2354,7 +2354,7 @@ function faEnrichAppTypes(appIds) {
                     + '<span style="font-size:10px;color:#06cfbe;background:rgba(6,207,190,0.1);padding:2px 8px;border-radius:8px;font-weight:600;">' + myTotal + '</span>'
                     + '</div>';
                 if (recentContrib.length > 0) {
-                    html += '<div style="flex:1;min-height:0;overflow-y:auto;">';
+                    html += '<div class="fa-my-contrib-list" style="flex:1;min-height:0;overflow-y:auto;">';
                     recentContrib.forEach(function(g) {
                         var dateStr = g.time > 0 ? new Date(g.time * 1000).toLocaleDateString('zh-CN') : '未知';
                         var tagColor = g.isExclusive ? '#ff9f43' : '#a78bfa';
@@ -2389,7 +2389,7 @@ function faEnrichAppTypes(appIds) {
                     + '<span style="font-size:10px;color:#54a0ff;background:rgba(84,160,255,0.1);padding:2px 8px;border-radius:8px;font-weight:600;">' + playCount + '</span>'
                     + '</div>';
                 if (playGames.length > 0) {
-                    html += '<div style="flex:1;min-height:0;overflow-y:auto;">';
+                    html += '<div class="fa-my-contrib-list" style="flex:1;min-height:0;overflow-y:auto;">';
                     playGames.forEach(function(g) {
                         var gRecent = faFmtHours(g.playtime_2weeks || 0);
                         var gTotal = faFmtHours(g.playtime_forever || 0);
@@ -2417,12 +2417,12 @@ function faEnrichAppTypes(appIds) {
                 var exclusiveDisplay = myExclusiveGames.slice((myExclusivePage - 1) * exclusivePerPage, myExclusivePage * exclusivePerPage);
                 html += '<div class="fa-my-contrib-exclusive" style="flex:1 1 300px;min-width:260px;background:rgba(30,41,59,0.95);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;box-shadow:0 4px 24px rgba(0,0,0,0.35);display:flex;flex-direction:column;">';
                 // 标题栏：标题左侧 + 分页按钮右侧
-                html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-shrink:0;gap:8px;">'
+                html += '<div class="fa-my-contrib-exclusive-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-shrink:0;gap:8px;">'
                     + '<div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#c7d5e0;flex-shrink:0;">'
                     + '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#ff9f43" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>'
                     + '我的独占贡献</div>'
                     + (exclusiveTotalPages > 1
-                        ? '<div style="display:flex;align-items:center;gap:6px;">'
+                        ? '<div class="fa-my-contrib-exclusive-pager" style="display:flex;align-items:center;gap:6px;">'
                           + '<span style="font-size:10px;color:#ff9f43;background:rgba(255,159,67,0.1);padding:2px 8px;border-radius:8px;font-weight:600;white-space:nowrap;">共' + myExclusiveGames.length + '款</span>'
                           + '<button id="faExcPrevPage" style="background:rgba(15,23,42,0.6);border:1px solid rgba(255,159,67,0.25);color:#ff9f43;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.2s;' + (myExclusivePage <= 1 ? 'opacity:0.4;cursor:not-allowed;' : '') + '" ' + (myExclusivePage <= 1 ? 'disabled' : '') + '>'
                           + '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:2px;"><polyline points="15 18 9 12 15 6"/></svg>上一页</button>'
@@ -2433,7 +2433,7 @@ function faEnrichAppTypes(appIds) {
                         : '<span style="font-size:10px;color:#ff9f43;background:rgba(255,159,67,0.1);padding:2px 8px;border-radius:8px;font-weight:600;">' + myExclusiveGames.length + '</span>')
                     + '</div>';
                 if (exclusiveDisplay.length > 0) {
-                    html += '<div style="flex:1;min-height:0;overflow-y:auto;">';
+                    html += '<div class="fa-my-contrib-list" style="flex:1;min-height:0;overflow-y:auto;">';
                     exclusiveDisplay.forEach(function(g) {
                         var dateStr = g.time > 0 ? new Date(g.time * 1000).toLocaleDateString('zh-CN') : '未知';
                         html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'
@@ -7711,7 +7711,9 @@ function faInjectGlobalStyle() {
         + '#familyAnalysisDragHandle{cursor:default!important;flex-wrap:wrap;padding:10px!important;border-radius:0!important}'
         + '#familyAnalysisDragHandle .fa-global-search{order:4;flex:1 0 100%;max-width:none;height:44px;margin:0}'
         + '#familyAnalysisPanel .fa-tab-pane{max-height:none;padding:10px;overscroll-behavior:contain}'
-        + '#familyAnalysisPanel .fa-panel-content{overflow:auto!important;-webkit-overflow-scrolling:touch}'
+        + '#familyAnalysisPanel .fa-panel-content{overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch}'
+        + '#familyAnalysisPanel [data-fa-tab="contribution"]{overflow:visible!important}'
+        + '#familyAnalysisPanel .fa-contrib-default [style*="overflow-y:auto"],#familyAnalysisPanel .fa-my-contrib-view [style*="overflow-y:auto"]{overflow:visible!important}'
         + '#familyAnalysisPanel [style*="grid-template-columns:repeat("]{grid-template-columns:1fr!important}'
         + '#familyAnalysisPanel [style*="min-width:300px"],#familyAnalysisPanel [style*="min-width:320px"]{min-width:0!important}'
         + '#Family_countChart{width:100%!important;height:auto!important;max-height:55dvh}'
@@ -7733,6 +7735,9 @@ function faInjectGlobalStyle() {
         + '#familyAnalysisPanel .fa-contrib-overlay-kpis>div:last-child:nth-child(odd){grid-column:1/-1}'
         + '#familyAnalysisPanel .fa-my-contrib-columns{display:grid!important;grid-template-columns:1fr!important;gap:10px!important;min-width:0!important}'
         + '#familyAnalysisPanel .fa-my-contrib-primary,#familyAnalysisPanel .fa-my-contrib-exclusive{min-width:0!important;width:100%!important;flex:none!important}'
+        + '#familyAnalysisPanel .fa-my-contrib-exclusive-header{flex-wrap:wrap!important;min-width:0!important;overflow:visible!important}'
+        + '#familyAnalysisPanel .fa-my-contrib-exclusive-pager{gap:8px!important;flex-wrap:wrap!important;min-width:0!important;max-width:100%!important;overflow:visible!important}'
+        + '#familyAnalysisPanel .fa-my-contrib-exclusive-pager button{min-height:44px!important;flex:0 1 auto;white-space:nowrap}'
         + '#familyAnalysisPanel .fa-my-contrib-view a[data-fa-appid]{white-space:normal!important;overflow-wrap:anywhere}'
         + '#familyAnalysisPanel #faContribBack{min-height:44px!important}'
         + '#familyAnalysisPanel #faExcPrevPage,#familyAnalysisPanel #faExcNextPage{min-height:44px!important}'

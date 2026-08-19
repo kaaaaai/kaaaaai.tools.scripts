@@ -47,6 +47,12 @@ test('stacks My Contribution with sticky mobile navigation', () => {
   assert.match(source, /\.fa-contrib-overlay-header\{position:sticky!important;top:0/);
   assert.match(source, /\.fa-contrib-overlay-kpis\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)!important/);
   assert.match(source, /\.fa-my-contrib-columns\{display:grid!important;grid-template-columns:1fr!important/);
+  assert.match(source, /#familyAnalysisPanel \.fa-panel-content\{overflow-y:auto!important;overflow-x:hidden!important/);
+  assert.match(source, /#familyAnalysisPanel \[data-fa-tab="contribution"\]\{overflow:visible!important\}/);
+  assert.match(source, /\.fa-contrib-default \[style\*="overflow-y:auto"\],#familyAnalysisPanel \.fa-my-contrib-view \[style\*="overflow-y:auto"\]\{overflow:visible!important\}/);
+  assert.match(source, /\.fa-my-contrib-exclusive-header\{flex-wrap:wrap!important;min-width:0!important/);
+  assert.match(source, /\.fa-my-contrib-exclusive-pager\{gap:8px!important;flex-wrap:wrap!important;min-width:0!important;max-width:100%!important/);
+  assert.match(source, /\.fa-my-contrib-exclusive-pager button\{min-height:44px!important/);
   assert.match(source, /#faContribBack[\s\S]*min-height:44px/);
   assert.match(source, /function faRememberContributionScroll\(\)/);
   assert.match(source, /function faRestoreContributionScroll\(\)/);
