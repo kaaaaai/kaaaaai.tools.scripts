@@ -7733,7 +7733,7 @@ function faInjectGlobalStyle() {
         + '#familyAnalysisDragHandle{cursor:default!important;flex-wrap:wrap;padding:10px!important;border-radius:0!important}'
         + '#familyAnalysisDragHandle .fa-global-search{order:4;flex:1 0 100%;max-width:none;height:44px;margin:0}'
         + '#familyAnalysisPanel .fa-tab-pane{max-height:none;padding:10px;overscroll-behavior:contain}'
-        + '#familyAnalysisPanel .fa-panel-content{overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch}'
+        + '#familyAnalysisPanel .fa-panel-content{overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain!important}'
         + '#familyAnalysisPanel [data-fa-tab="contribution"]{overflow:visible!important}'
         + '#familyAnalysisPanel [data-fa-tab="contribution"],#familyAnalysisPanel [data-fa-tab="contribution"] *{box-sizing:border-box!important}'
         + '#familyAnalysisPanel .fa-contrib-member-legend,#familyAnalysisPanel .fa-my-contrib-list,#familyAnalysisPanel .fa-share-detail-analysis,#familyAnalysisPanel .fa-share-detail-games-list{overflow:visible!important}'

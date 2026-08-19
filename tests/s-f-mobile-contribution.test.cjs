@@ -5,6 +5,8 @@ const path = require('node:path');
 
 const scriptPath = path.resolve(__dirname, '..', 'steam-family-game-analysis.user.js');
 const readSource = () => fs.readFileSync(scriptPath, 'utf8');
+const repoRoot = path.resolve(__dirname, '..');
+const readRepoFile = (relativePath) => fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
 
 test('publishes updates from the kaaaaai repository', () => {
   const source = readSource();
@@ -12,6 +14,16 @@ test('publishes updates from the kaaaaai repository', () => {
   assert.match(source, new RegExp(`^// @downloadURL  ${installUrl.replaceAll('.', '\\.')}$`, 'm'));
   assert.match(source, new RegExp(`^// @updateURL    ${installUrl.replaceAll('.', '\\.')}$`, 'm'));
   assert.doesNotMatch(source, /raw\.githubusercontent\.com\/LeonInNB\/kaaaaai\.tools\.scripts/);
+
+  for (const relativePath of [
+    'README.md',
+    'docs/superpowers/specs/2026-08-19-mobile-contribution-layout-design.md',
+    'docs/superpowers/plans/2026-08-19-mobile-contribution-layout.md',
+  ]) {
+    const artifact = readRepoFile(relativePath);
+    assert.match(artifact, /kaaaaai\/kaaaaai\.tools\.scripts/);
+    assert.doesNotMatch(artifact, /LeonInNB\/kaaaaai\.tools\.scripts/);
+  }
 });
 
 test('uses Steam navigation entries without a floating mobile launcher', () => {
@@ -56,6 +68,7 @@ test('stacks My Contribution with sticky mobile navigation', () => {
   assert.match(source, /\.fa-contrib-overlay-kpis\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)!important/);
   assert.match(source, /\.fa-my-contrib-columns\{display:grid!important;grid-template-columns:1fr!important/);
   assert.match(source, /#familyAnalysisPanel \.fa-panel-content\{overflow-y:auto!important;overflow-x:hidden!important/);
+  assert.match(source, /#familyAnalysisPanel \.fa-panel-content\{[^}]*overscroll-behavior:contain!important/);
   assert.match(source, /#familyAnalysisPanel \[data-fa-tab="contribution"\]\{overflow:visible!important\}/);
   assert.match(source, /\.fa-my-contrib-exclusive-header\{flex-wrap:wrap!important;min-width:0!important/);
   assert.match(source, /\.fa-my-contrib-exclusive-pager\{gap:8px!important;flex-wrap:wrap!important;min-width:0!important;max-width:100%!important/);
