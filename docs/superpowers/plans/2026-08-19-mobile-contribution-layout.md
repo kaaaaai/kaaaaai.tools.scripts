@@ -24,8 +24,8 @@
 
 - Modify: `steam-family-game-analysis.user.js` — the published userscript, generated contribution markup, Chart.js interaction, mobile CSS, and metadata.
 - Create: `tests/s-f-mobile-contribution.test.cjs` — focused static regression checks for the published standalone script.
-- Synchronize after verification: `../s-f.js` — local working copy used by the original compatibility test suite.
-- Verify: `../tests/s-f-stay-compat.test.cjs` — existing Stay/Safari regression suite run against `../s-f.js`.
+- Synchronize after verification: `/Users/kaaaaai/Documents/KaiLab/Tools/s-f.js` — local working copy used by the original compatibility test suite.
+- Verify: `/Users/kaaaaai/Documents/KaiLab/Tools/tests/s-f-stay-compat.test.cjs` — existing Stay/Safari regression suite run against `/Users/kaaaaai/Documents/KaiLab/Tools/s-f.js`.
 - Existing design source: `docs/superpowers/specs/2026-08-19-mobile-contribution-layout-design.md`.
 
 ---
@@ -437,9 +437,9 @@ git commit -m "feat: adapt shared contribution detail for mobile"
 ### Task 5: Synchronize, Run Full Verification, and Publish v2.03
 
 **Files:**
-- Synchronize: `steam-family-game-analysis.user.js` → `../s-f.js`
+- Synchronize: `steam-family-game-analysis.user.js` → `/Users/kaaaaai/Documents/KaiLab/Tools/s-f.js`
 - Test: `tests/s-f-mobile-contribution.test.cjs`
-- Test: `../tests/s-f-stay-compat.test.cjs`
+- Test: `/Users/kaaaaai/Documents/KaiLab/Tools/tests/s-f-stay-compat.test.cjs`
 
 **Interfaces:**
 - Consumes: completed v2.03 userscript and both regression suites.
@@ -450,14 +450,14 @@ git commit -m "feat: adapt shared contribution detail for mobile"
 Run:
 
 ```bash
-cp steam-family-game-analysis.user.js ../s-f.js
+cp steam-family-game-analysis.user.js /Users/kaaaaai/Documents/KaiLab/Tools/s-f.js
 ```
 
-Expected: `cmp steam-family-game-analysis.user.js ../s-f.js` exits 0.
+Expected: `cmp steam-family-game-analysis.user.js /Users/kaaaaai/Documents/KaiLab/Tools/s-f.js` exits 0.
 
 - [ ] **Step 2: Update the existing compatibility metadata expectation**
 
-In `../tests/s-f-stay-compat.test.cjs`, change only the version assertion:
+In `/Users/kaaaaai/Documents/KaiLab/Tools/tests/s-f-stay-compat.test.cjs`, change only the version assertion:
 
 ```js
 assert.match(source, /^\/\/ @version\s+2\.03$/m);
@@ -472,7 +472,7 @@ Run from `kaaaaai.tools.scripts`:
 ```bash
 node --check steam-family-game-analysis.user.js
 node --test tests/s-f-mobile-contribution.test.cjs
-node --test ../tests/s-f-stay-compat.test.cjs
+node --test /Users/kaaaaai/Documents/KaiLab/Tools/tests/s-f-stay-compat.test.cjs
 git diff --check
 git status --short
 ```
