@@ -31,8 +31,8 @@
 // @compatible   firefox
 // @compatible   safari
 // @license      GPLv3
-// @downloadURL  https://raw.githubusercontent.com/LeonInNB/kaaaaai.tools.scripts/main/steam-family-game-analysis.user.js
-// @updateURL    https://raw.githubusercontent.com/LeonInNB/kaaaaai.tools.scripts/main/steam-family-game-analysis.user.js
+// @downloadURL  https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/steam-family-game-analysis.user.js
+// @updateURL    https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/steam-family-game-analysis.user.js
 // ==/UserScript==
 
 // <FA_COMPAT>

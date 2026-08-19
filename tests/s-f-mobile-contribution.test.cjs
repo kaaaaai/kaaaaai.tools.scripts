@@ -6,6 +6,14 @@ const path = require('node:path');
 const scriptPath = path.resolve(__dirname, '..', 'steam-family-game-analysis.user.js');
 const readSource = () => fs.readFileSync(scriptPath, 'utf8');
 
+test('publishes updates from the kaaaaai repository', () => {
+  const source = readSource();
+  const installUrl = 'https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/steam-family-game-analysis.user.js';
+  assert.match(source, new RegExp(`^// @downloadURL  ${installUrl.replaceAll('.', '\\.')}$`, 'm'));
+  assert.match(source, new RegExp(`^// @updateURL    ${installUrl.replaceAll('.', '\\.')}$`, 'm'));
+  assert.doesNotMatch(source, /raw\.githubusercontent\.com\/LeonInNB\/kaaaaai\.tools\.scripts/);
+});
+
 test('uses Steam navigation entries without a floating mobile launcher', () => {
   const source = readSource();
   assert.doesNotMatch(source, /FA_MOBILE_LAUNCHER|fa-mobile-launcher|faEnsureMobileLauncher/);

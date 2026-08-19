@@ -18,7 +18,7 @@
 - Contribution views use one vertical scroll axis and must not introduce horizontal page scrolling.
 - Preserve existing safe-area padding and Steam dark-theme colors.
 - Release version is exactly `2.03`.
-- Repository update and download URLs remain `https://raw.githubusercontent.com/LeonInNB/kaaaaai.tools.scripts/main/steam-family-game-analysis.user.js`.
+- Repository update and download URLs remain `https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/steam-family-game-analysis.user.js`.
 
 ## File Map
 
@@ -490,11 +490,11 @@ Expected:
 Run:
 
 ```bash
-gh auth switch --hostname github.com --user LeonInNB
+gh auth switch --hostname github.com --user kaaaaai
 gh api user --jq .login
 ```
 
-Expected: exact output `LeonInNB`. Stop without pushing if verification fails.
+Expected: exact output `kaaaaai`. Stop without pushing if verification fails.
 
 - [ ] **Step 5: Push main and verify the raw install URL**
 
@@ -502,8 +502,8 @@ Run:
 
 ```bash
 git push origin main
-curl -sS -I -L https://raw.githubusercontent.com/LeonInNB/kaaaaai.tools.scripts/main/steam-family-game-analysis.user.js
-curl -sS -L https://raw.githubusercontent.com/LeonInNB/kaaaaai.tools.scripts/main/steam-family-game-analysis.user.js | sed -n '1,38p'
+curl -sS -I -L https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/steam-family-game-analysis.user.js
+curl -sS -L https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/steam-family-game-analysis.user.js | sed -n '1,38p'
 ```
 
 Expected:

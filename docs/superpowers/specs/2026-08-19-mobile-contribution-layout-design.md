@@ -164,4 +164,4 @@ Real-device acceptance on iPhone Safari with Stay:
 
 - Bump the userscript version from 2.02 to 2.03.
 - Apply the same production source to the working copy and `steam-family-game-analysis.user.js` in the GitHub repository.
-- Commit and push to `LeonInNB/kaaaaai.tools.scripts` after all automated verification passes.
+- Commit and push to `kaaaaai/kaaaaai.tools.scripts` after all automated verification passes.
