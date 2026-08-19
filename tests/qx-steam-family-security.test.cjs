@@ -114,26 +114,30 @@ function assertBridgeNetworkFree(bridge, file) {
   }
 }
 
+function assertOperationDiscriminatorView(view, file, viewName) {
+  const membership = /Object\s*\.\s*prototype\s*\.\s*hasOwnProperty\s*\.\s*call\s*\(\s*ALLOWED\s*,\s*input\s*\.\s*operation\s*\)/g;
+  assert.equal([...view.matchAll(membership)].length, 1, `${file} ${viewName} must use input.operation exactly once for allowlist membership`);
+  const equality = /input\s*\.\s*operation\s*===\s*'([^']+)'/g;
+  const dispatched = [...view.matchAll(equality)].map((entry) => entry[1]);
+  assert.deepEqual(dispatched, operationNames, `${file} ${viewName} dispatch changed`);
+  const remainingOperationUses = view.replace(membership, '').replace(equality, '');
+  assert.doesNotMatch(remainingOperationUses, /\binput\s*\.\s*operation\b/, `${file} ${viewName} contains an unapproved input.operation use`);
+  assert.doesNotMatch(view, /\b(?:eval|Function)\b|\.\s*constructor\b|\[\s*(?:['"][^'"]*constructor[^'"]*['"]|['"][^'"]*['"]\s*\+)/, `${file} ${viewName} contains dynamic evaluation or constructor dispatch`);
+  assert.doesNotMatch(view, /\binput\s*\[/, `${file} ${viewName} uses computed operation access`);
+  assert.doesNotMatch(view, /\b[A-Za-z_$][\w$]*\s*\[[^\]]+\]\s*\(/, `${file} ${viewName} contains dynamic function dispatch`);
+}
+
 function assertStrictBridge(bridge, file) {
   assert.deepEqual(declaredNames(bridge, 'ALLOWED'), operationNames, `${file} allowlist changed`);
   assert.deepEqual(declaredNames(bridge, 'COMMANDS'), ['rescan', 'refreshExternal', 'clearCache'], `${file} command allowlist changed`);
   assertOnlyMembershipReferences(bridge, 'ALLOWED', 'input.operation', file);
   assertOnlyMembershipReferences(bridge, 'COMMANDS', 'payload.command', file);
-  const executable = stripComments(bridge);
-  const membership = /Object\s*\.\s*prototype\s*\.\s*hasOwnProperty\s*\.\s*call\s*\(\s*ALLOWED\s*,\s*input\s*\.\s*operation\s*\)/g;
-  assert.equal([...executable.matchAll(membership)].length, 1, `${file} must use input.operation exactly once for allowlist membership`);
-  const equality = /input\s*\.\s*operation\s*===\s*'([^']+)'/g;
-  const dispatched = [...executable.matchAll(equality)].map((entry) => entry[1]);
-  assert.deepEqual(dispatched, operationNames, `${file} dispatch changed`);
   const dotted = [...bridge.matchAll(/['"]([A-Za-z][A-Za-z0-9_-]*(?:\.[A-Za-z0-9_.-]+)+)['"]/g)].map((entry) => entry[1]);
   for (const literal of dotted) {
     assert.ok(operationNames.includes(literal) || preferenceLiterals.includes(literal), `${file} contains an unapproved dotted literal: ${literal}`);
   }
-  const remainingOperationUses = executable.replace(membership, '').replace(equality, '');
-  assert.doesNotMatch(remainingOperationUses, /\binput\s*\.\s*operation\b/, `${file} contains an unapproved input.operation use`);
-  assert.doesNotMatch(executable, /\b(?:eval|Function)\b|\.\s*constructor\b|\[\s*(?:['"][^'"]*constructor[^'"]*['"]|['"][^'"]*['"]\s*\+)/, `${file} contains dynamic evaluation or constructor dispatch`);
-  assert.doesNotMatch(executable, /\binput\s*\[/, `${file} uses computed operation access`);
-  assert.doesNotMatch(executable, /\b[A-Za-z_$][\w$]*\s*\[[^\]]+\]\s*\(/, `${file} contains dynamic function dispatch`);
+  assertOperationDiscriminatorView(bridge, file, 'raw source');
+  assertOperationDiscriminatorView(stripComments(bridge), file, 'comment-stripped source');
   assertBridgeNetworkFree(bridge, file);
 }
 
@@ -246,6 +250,14 @@ test('bridge inspection rejects an aliased seventh operation and accepts harmles
     'var COMMANDS = {\n    rescan: true,\n    refreshExternal: true,\n    clearCache: true\n  };',
   );
   assert.doesNotThrow(() => assertStrictBridge(formatted, 'formatted fixture'));
+});
+
+test('bridge inspection rejects same-line string-masked evaluation and split-vocabulary operation aliases', () => {
+  const source = fs.readFileSync(path.join(sourceDir, 'bridge.js'), 'utf8');
+  const mutation = source
+    .replace('var payload = input.payload === undefined ? {} : input.payload;', "var note = '//'; eval('ignored'); var operationAlias = input.operation;\n    var payload = input.payload === undefined ? {} : input.payload;")
+    .replace("else throw new Error('FA_QX_OPERATION_DENIED');", "else if (operationAlias === ('e' + 'vil')) data = {};\n    else throw new Error('FA_QX_OPERATION_DENIED');");
+  assert.throws(() => assertStrictBridge(mutation, 'fixture'));
 });
 
 test('bridge exposes exactly the six Phase 1 operations and no network credential primitives', () => {
