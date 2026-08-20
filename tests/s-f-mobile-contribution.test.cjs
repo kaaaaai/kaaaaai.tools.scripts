@@ -2,11 +2,28 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
+const { parseHTML } = require('linkedom');
 
 const scriptPath = path.resolve(__dirname, '..', 'steam-family-game-analysis.user.js');
 const readSource = () => fs.readFileSync(scriptPath, 'utf8');
 const repoRoot = path.resolve(__dirname, '..');
 const readRepoFile = (relativePath) => fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
+
+function loadTopNavigationHelpers() {
+  const source = readSource();
+  const start = source.indexOf('// <FA_TOP_NAV_HELPERS>');
+  const end = source.indexOf('// </FA_TOP_NAV_HELPERS>');
+  assert.notEqual(start, -1, 'top-navigation helpers are missing');
+  assert.ok(end > start, 'top-navigation helper boundary is missing');
+  const context = {};
+  vm.runInNewContext(source.slice(start, end), context);
+  return context;
+}
+
+function setRect(element, top) {
+  element.getBoundingClientRect = () => ({ top, bottom: top + 44, left: 0, right: 100, width: 100, height: 44 });
+}
 
 test('publishes updates from the kaaaaai repository', () => {
   const source = readSource();
@@ -32,6 +49,30 @@ test('uses Steam navigation entries without a floating mobile launcher', () => {
   assert.match(source, /setting_btn\.id = "setting_btn"/);
   assert.match(source, /function plugWishlistSibling\(\)/);
   assert.match(source, /function plugDropdown\(\)/);
+});
+
+test('finds the Steam App wishlist tab when its React top bar is not a semantic header', () => {
+  const { faFindTopWishlistLink } = loadTopNavigationHelpers();
+  const { document } = parseHTML('<main><a id="content" href="/wishlist/">查看您愿望单里的所有游戏</a></main><div class="react-topbar"><a id="top" href="/wishlist/profiles/76561198000000000/">愿望单 33</a></div>');
+  setRect(document.querySelector('#content'), 900);
+  setRect(document.querySelector('#top'), 290);
+  assert.equal(faFindTopWishlistLink(document, 420).id, 'top');
+});
+
+test('finds the compact Steam App logo bar when wishlist navigation is absent', () => {
+  const { faFindTopSteamLogoLink } = loadTopNavigationHelpers();
+  const { document } = parseHTML('<main><a id="promo" href="/"><span>STEAM FEST</span></a></main><div class="compact-topbar"><a id="logo" href="/"><img alt="STEAM"></a></div>');
+  setRect(document.querySelector('#promo'), 800);
+  setRect(document.querySelector('#logo'), 150);
+  assert.equal(faFindTopSteamLogoLink(document, 320).id, 'logo');
+});
+
+test('finds a compact Steam App logo control even when it is not an anchor', () => {
+  const { faFindTopSteamLogoLink } = loadTopNavigationHelpers();
+  const { document } = parseHTML('<div class="compact-topbar"><button id="logo-control" aria-label="Steam"><img alt="STEAM"></button></div>');
+  setRect(document.querySelector('#logo-control'), 150);
+  setRect(document.querySelector('img'), 150);
+  assert.equal(faFindTopSteamLogoLink(document, 320).id, 'logo-control');
 });
 
 test('defines a single-column mobile contribution overview', () => {
