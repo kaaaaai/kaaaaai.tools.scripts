@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const releaseDir = path.resolve(__dirname, '..', 'quantumultx/steam-family/releases/0.2.1');
+const releaseDir = path.resolve(__dirname, '..', 'quantumultx/steam-family/releases/0.2.2');
 const proxySource = () => fs.readFileSync(path.join(releaseDir, 'proxy.js'), 'utf8');
 const manifest = () => JSON.parse(fs.readFileSync(path.join(releaseDir, 'manifest.json'), 'utf8'));
 

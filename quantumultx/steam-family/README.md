@@ -1,6 +1,6 @@
 # Steam Family Sharing for Quantumult X
 
-This release installs the complete Steam Family v2.05 core in Quantumult X.
+This release installs the complete Steam Family v2.06 core in Quantumult X.
 It provides the top Steam navigation entry, family-library scanning and
 persistence, Steam/Keylol markers, and the complete analysis interface while
 using strictly allowlisted local bridges.
@@ -61,11 +61,14 @@ badge as a health check. With debug enabled, these states have exact meanings:
   health check.
 - **`bridge ✓`:** the local bridge accepted the matching release and build and
   returned the health/configuration data. A successful diagnostic reads
-  `FA QX 0.2.1 · runtime ✓ · bridge ✓ · core 2.05 ✓`.
-- **`core 2.05 ✓`:** the compatibility adapter, pinned dependencies, and the
+  `FA QX 0.2.2 · runtime ✓ · bridge ✓ · core 2.06 ✓ · nav ✓`.
+- **`core 2.06 ✓`:** the compatibility adapter, pinned dependencies, and the
   full family-library core all loaded. The top “我的家庭库” entry is then
-  installed by the same v2.05 UI source as the userscript edition. This
-  release recognizes both the Steam App React tab bar and its compact Logo bar.
+  installed by the same v2.06 UI source as the userscript edition. This
+  release recognizes linked and non-linked Steam App React tabs plus its
+  compact Logo bar.
+- **`nav ✓`:** the family-library entry was actually inserted. `nav …` means
+  the core is still waiting for a compatible top navigation anchor.
 - **Version mismatch:** `FA_QX_VERSION_MISMATCH` means the runtime and bridge
   release/build are from different versions; refresh the remote resource so
   both assets come from the same release directory.
@@ -77,18 +80,18 @@ badge as a health check. With debug enabled, these states have exact meanings:
 
 | Component | Value |
 | --- | --- |
-| Runtime | `0.2.1` |
-| Core | `2.05` |
+| Runtime | `0.2.2` |
+| Core | `2.06` |
 | Schema | `1` |
 | Index schema | `1` |
 
 ## Emergency rollback or remove
 
-To roll back to the previous full-core `0.2.0` release, replace only this module's remote-resource URL
+To roll back to the previous full-core `0.2.1` release, replace only this module's remote-resource URL
 with the immutable resource below, then refresh Quantumult X:
 
 ```text
-https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/6708869ce44fcb4921e1b611fd95b8832b94834e/quantumultx/steam-family/steam-family.snippet
+https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/3e7da715f548c2abdbeb8ce5789003f369fd4959/quantumultx/steam-family/steam-family.snippet
 ```
 
 For the earlier injection-only diagnostic, use:

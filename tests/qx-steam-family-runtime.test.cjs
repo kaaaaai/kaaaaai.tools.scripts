@@ -5,7 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { runQx } = require('./helpers/run-qx-script.cjs');
 
-const releaseDir = path.resolve(__dirname, '..', 'quantumultx/steam-family/releases/0.2.1');
+const releaseDir = path.resolve(__dirname, '..', 'quantumultx/steam-family/releases/0.2.2');
 const readAsset = (name) => fs.readFileSync(path.join(releaseDir, name), 'utf8');
 
 function runInjector(body, headers) {
@@ -72,7 +72,7 @@ function documentStub() {
   return document;
 }
 
-function currentScriptStub(buildId = currentBuildId(), release = '0.2.1', src) {
+function currentScriptStub(buildId = currentBuildId(), release = '0.2.2', src) {
   const marker = buildId;
   return {
     src: src === undefined ? `https://store.steampowered.com/fa-qx/v1/runtime.js?release=${release}&build=${buildId}` : src,
@@ -110,7 +110,7 @@ async function waitFor(condition) {
 
 function runPageRuntime({ config = { debug: false }, health, fetchImpl, document = documentStub(), currentScript, window = {}, runtime = pageRuntime(), PromiseImpl = Promise, setTimeoutImpl = setTimeout, clearTimeoutImpl = clearTimeout } = {}) {
   const postedRequests = [];
-  const runtimeHealth = health || { release: '0.2.1', buildId: currentBuildId(), schema: 1 };
+  const runtimeHealth = health || { release: '0.2.2', buildId: currentBuildId(), schema: 1 };
   const fetch = fetchImpl || ((url, options) => {
     const request = JSON.parse(decodeURIComponent(url.split('?request=')[1]));
     postedRequests.push(request);
@@ -166,7 +166,7 @@ test('injector preserves non-HTML and injects the runtime only once', () => {
   assert.equal(runInjector('<html><body>x</body></html>', { 'Content-Type': 'text/html' }).match(/data-fa-qx-bootstrap=/g).length, 1);
   assert.equal(runInjector(runInjector('<html><body>x</body></html>', htmlHeaders), htmlHeaders).match(/data-fa-qx-bootstrap=/g).length, 1);
   const injected = runInjector('<html><body>x</body></html>', htmlHeaders);
-  assert.match(injected, /\/fa-qx\/v1\/runtime\.js\?release=0\.2\.1&build=[0-9a-f]{12}/);
+  assert.match(injected, /\/fa-qx\/v1\/runtime\.js\?release=0\.2\.2&build=[0-9a-f]{12}/);
 });
 
 test('runtime asset returns the page runtime as JavaScript', () => {
@@ -174,11 +174,11 @@ test('runtime asset returns the page runtime as JavaScript', () => {
   assert.match(runAsset().body, /window\.__FA_QX__/);
 });
 
-test('full-core runtime installs its adapter and loads pinned dependencies before the v2.05 core', async () => {
+test('full-core runtime installs its adapter and loads pinned dependencies before the v2.06 core', async () => {
   const document = documentStub();
   const { window } = runPageRuntime({ document, config: { debug: true } });
   await window.__FA_QX__.ready;
-  assert.equal(window.__FA_QX__.coreVersion, '2.05');
+  assert.equal(window.__FA_QX__.coreVersion, '2.06');
   assert.equal(window.__FA_QX__.coreState, 'ready');
   assert.equal(typeof window.GM_getValue, 'function');
   assert.equal(typeof window.GM_xmlhttpRequest, 'function');
@@ -188,7 +188,7 @@ test('full-core runtime installs its adapter and loads pinned dependencies befor
     '/fa-qx/v1/asset/app-detail.js',
     '/fa-qx/v1/asset/core.js',
   ]);
-  assert.match(document.querySelector('#fa-qx-diagnostic').textContent, /core 2\.05 ✓/);
+  assert.match(document.querySelector('#fa-qx-diagnostic').textContent, /core 2\.06 ✓/);
 });
 
 test('GM request adapter sends Steam credentials only in the analyze-proxy POST body', async () => {
@@ -204,7 +204,7 @@ test('GM request adapter sends Steam credentials only in the analyze-proxy POST 
     }
     const request = requestFromBridgeUrl(url);
     const data = request.operation === 'runtime.health'
-      ? { release: '0.2.1', buildId: currentBuildId(), schema: 1 }
+      ? { release: '0.2.2', buildId: currentBuildId(), schema: 1 }
       : { debug: false };
     return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, data }) });
   };
@@ -240,7 +240,7 @@ test('community runtime hydrates the compact family index before loading the sha
   const fetchImpl = (url) => {
     const request = requestFromBridgeUrl(url);
     let data;
-    if (request.operation === 'runtime.health') data = { release: '0.2.1', buildId: currentBuildId(), schema: 1 };
+    if (request.operation === 'runtime.health') data = { release: '0.2.2', buildId: currentBuildId(), schema: 1 };
     else if (request.operation === 'config.get') data = { debug: false };
     else if (request.operation === 'index.read' && request.payload.part === 'manifest') data = manifest;
     else if (request.operation === 'index.read' && request.payload.part === 'chunk') data = { chunk: compact };
@@ -262,7 +262,7 @@ test('Steam runtime publishes a compact cross-origin index after the core saves 
     const request = requestFromBridgeUrl(url);
     requests.push(request);
     let data;
-    if (request.operation === 'runtime.health') data = { release: '0.2.1', buildId: currentBuildId(), schema: 1 };
+    if (request.operation === 'runtime.health') data = { release: '0.2.2', buildId: currentBuildId(), schema: 1 };
     else if (request.operation === 'config.get') data = { debug: false };
     else if (request.operation === 'index.read') data = null;
     else if (request.operation === 'index.publish') data = request.payload.phase === 'stage' ? { staged: request.payload.chunkIndex } : { generation: request.payload.manifest.generation };
@@ -321,7 +321,7 @@ test('runtime executes pending BoxJS maintenance commands once and acknowledges 
     const request = requestFromBridgeUrl(url);
     requests.push(request);
     const data = request.operation === 'runtime.health'
-      ? { release: '0.2.1', buildId: currentBuildId(), schema: 1 }
+      ? { release: '0.2.2', buildId: currentBuildId(), schema: 1 }
       : request.operation === 'config.get'
         ? config
         : { acknowledged: request.payload.id };
@@ -361,7 +361,7 @@ test('runtime requires page confirmation before clearing QX family data', async 
     const request = requestFromBridgeUrl(url);
     requests.push(request);
     const data = request.operation === 'runtime.health'
-      ? { release: '0.2.1', buildId: currentBuildId(), schema: 1 }
+      ? { release: '0.2.2', buildId: currentBuildId(), schema: 1 }
       : request.operation === 'config.get'
         ? config
         : request.operation === 'index.clear'
@@ -386,7 +386,7 @@ test('page runtime sends the bridge envelope through an echo-compatible GET URL'
     requests.push({ url, options });
     const envelope = JSON.parse(decodeURIComponent(url.split('?request=')[1]));
     const data = envelope.operation === 'runtime.health'
-      ? { release: '0.2.1', buildId: currentBuildId(), schema: 1 }
+      ? { release: '0.2.2', buildId: currentBuildId(), schema: 1 }
       : { debug: false };
     return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ ok: true, data }) });
   };
@@ -418,7 +418,7 @@ test('runtime rejects absent, invalid, and mixed-build currentScript before brid
     { src: currentScriptStub().src },
     currentScriptStub('111111111111'),
     {
-      src: `https://store.steampowered.com/fa-qx/v1/runtime.js?release=0.2.1&build=111111111111`,
+      src: `https://store.steampowered.com/fa-qx/v1/runtime.js?release=0.2.2&build=111111111111`,
       getAttribute(name) { return name === 'data-fa-qx-bootstrap' ? buildId : null; },
     },
     {
@@ -458,7 +458,7 @@ test('bridge timeout settles after 8000 ms, clears its timer, and ignores a late
   assert.equal(timers.count(), 0);
   response.resolve({
     ok: true,
-    json: () => Promise.resolve({ ok: true, data: { release: '0.2.1', buildId: currentBuildId(), schema: 1 } }),
+    json: () => Promise.resolve({ ok: true, data: { release: '0.2.2', buildId: currentBuildId(), schema: 1 } }),
   });
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(window.__FA_QX__, timedOutApi);
@@ -493,7 +493,7 @@ test('same-build reinjection replaces an errored runtime but remains idempotent 
   assert.equal(startingWindow.__FA_QX__, startingApi);
   startingHealth.resolve({
     ok: true,
-    json: () => Promise.resolve({ ok: true, data: { release: '0.2.1', buildId: currentBuildId(), schema: 1 } }),
+    json: () => Promise.resolve({ ok: true, data: { release: '0.2.2', buildId: currentBuildId(), schema: 1 } }),
   });
   await startingApi.ready;
 });
@@ -512,11 +512,20 @@ test('page runtime renders a safe-area diagnostic only when debug is enabled', a
   await window.__FA_QX__.ready;
   const badge = document.querySelector('#fa-qx-diagnostic');
   assert.ok(badge);
-  assert.match(badge.textContent, /FA QX 0\.2\.1/);
+  assert.match(badge.textContent, /FA QX 0\.2\.2/);
   assert.match(badge.textContent, /runtime ✓/);
   assert.match(badge.textContent, /bridge ✓/);
   assert.match(badge.style.cssText, /pointer-events:none/);
   assert.match(badge.style.cssText, /env\(safe-area-inset-bottom\)/);
+});
+
+test('debug diagnostic reports whether the family navigation entry was inserted', async () => {
+  const { window, document } = runPageRuntime({ config: { debug: true } });
+  await window.__FA_QX__.ready;
+  assert.match(document.querySelector('#fa-qx-diagnostic').textContent, /nav …/);
+  window.__FA_QX__.reportNavigation('ready');
+  assert.match(document.querySelector('#fa-qx-diagnostic').textContent, /nav ✓/);
+  assert.equal(window.__FA_QX__.navState, 'ready');
 });
 
 test('page runtime replaces an existing diagnostic instead of duplicating it', async () => {
@@ -589,7 +598,7 @@ test('page runtime redacts a rejected configuration request', async () => {
       if (request.operation === 'runtime.health') {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({ ok: true, data: { release: '0.2.1', buildId: currentBuildId(), schema: 1 } }),
+          json: () => Promise.resolve({ ok: true, data: { release: '0.2.2', buildId: currentBuildId(), schema: 1 } }),
         });
       }
       return Promise.reject(originalError);
@@ -657,7 +666,7 @@ test('a superseded runtime cannot overwrite the current runtime after its health
     if (request.buildId === oldBuildId && request.operation === 'runtime.health') return oldHealth.promise;
     if (request.buildId === oldBuildId && request.operation === 'config.get') return oldConfig.promise;
     const data = request.operation === 'runtime.health'
-      ? { release: '0.2.1', buildId: request.buildId, schema: 1 }
+      ? { release: '0.2.2', buildId: request.buildId, schema: 1 }
       : { debug: true };
     return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, data }) });
   };
@@ -669,7 +678,7 @@ test('a superseded runtime cannot overwrite the current runtime after its health
   const currentBadge = document.querySelector('#fa-qx-diagnostic');
   oldHealth.resolve({
     ok: true,
-    json: () => Promise.resolve({ ok: true, data: { release: '0.2.1', buildId: oldBuildId, schema: 1 } }),
+    json: () => Promise.resolve({ ok: true, data: { release: '0.2.2', buildId: oldBuildId, schema: 1 } }),
   });
   await waitFor(() => requests.some((request) => request.buildId === oldBuildId && request.operation === 'config.get'));
   oldConfig.reject(oldError);
@@ -685,13 +694,13 @@ test('a superseded runtime cannot overwrite the current runtime after its health
 test('bridge only serves the matching runtime health operation', () => {
   const asset = runAsset().body;
   const buildId = asset.match(/buildId: '([0-9a-f]{12})'/)[1];
-  const success = runBridge(JSON.stringify({ operation: 'runtime.health', payload: {}, release: '0.2.1', buildId }));
+  const success = runBridge(JSON.stringify({ operation: 'runtime.health', payload: {}, release: '0.2.2', buildId }));
   assert.equal(success.status, 'HTTP/1.1 200 OK');
   assert.deepEqual(JSON.parse(success.body), {
     ok: true,
-    data: { release: '0.2.1', buildId, coreVersion: '2.05', schema: 1 },
+    data: { release: '0.2.2', buildId, coreVersion: '2.06', schema: 1 },
   });
-  const denied = runBridge(JSON.stringify({ operation: 'profile.read', payload: {}, release: '0.2.1', buildId }));
+  const denied = runBridge(JSON.stringify({ operation: 'profile.read', payload: {}, release: '0.2.2', buildId }));
   assert.equal(denied.status, 'HTTP/1.1 403 Forbidden');
   assert.equal(JSON.parse(denied.body).error, 'FA_QX_OPERATION_DENIED');
 });
@@ -718,7 +727,7 @@ test('bridge rejects a body whose UTF-8 bytes exceed the limit', () => {
   const buildId = runAsset().body.match(/buildId: '([0-9a-f]{12})'/)[1];
   const body = JSON.stringify({
     operation: 'runtime.health',
-    release: '0.2.1',
+    release: '0.2.2',
     buildId,
     payload: { text: '😀'.repeat(131200) },
   });

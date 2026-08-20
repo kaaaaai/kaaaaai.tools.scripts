@@ -73,7 +73,7 @@ function build(projectRoot = path.resolve(__dirname, '..')) {
   const sources = Object.fromEntries(sourceNames.map((name) => [name, fs.readFileSync(path.join(sourceDir, name), 'utf8')]));
   const userscriptSource = fs.readFileSync(path.join(projectRoot, 'steam-family-game-analysis.user.js'), 'utf8');
   const metadata = userscriptSource.match(/^\/\/ ==UserScript==[\s\S]*?^\/\/ ==\/UserScript==\s*/m);
-  if (!metadata || !/^\/\/ @version\s+2\.05\s*$/m.test(metadata[0])) throw new Error('FA_QX_CORE_VERSION_INVALID');
+  if (!metadata || !/^\/\/ @version\s+2\.06\s*$/m.test(metadata[0])) throw new Error('FA_QX_CORE_VERSION_INVALID');
   const core = userscriptSource.slice(metadata[0].length);
   validateRelease(release);
   if (release.routePrefix !== snippetContract.routePrefix) invalidMetadata('routePrefix diverges from snippet contract');

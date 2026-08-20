@@ -7,19 +7,19 @@ const os = require('node:os');
 const childProcess = require('node:child_process');
 
 const root = path.resolve(__dirname, '..');
-const releaseDir = path.join(root, 'quantumultx/steam-family/releases/0.2.1');
+const releaseDir = path.join(root, 'quantumultx/steam-family/releases/0.2.2');
 const sha256 = (text) => crypto.createHash('sha256').update(text).digest('hex');
 
-test('full-core release publishes the v2.05 QX contract and required assets', () => {
+test('full-core release publishes the v2.06 QX contract and required assets', () => {
   const metadata = JSON.parse(fs.readFileSync(path.join(root, 'src/quantumultx/steam-family/release.json'), 'utf8'));
-  assert.equal(metadata.release, '0.2.1');
-  assert.equal(metadata.coreVersion, '2.05');
+  assert.equal(metadata.release, '0.2.2');
+  assert.equal(metadata.coreVersion, '2.06');
   assert.deepEqual(metadata.proxyOperations, [
     'steam.familyGroup', 'steam.sharedApps', 'steam.playerLinks', 'steam.recentGames',
     'steam.ownedGames', 'steam.storeItems', 'steam.appDetails', 'steam.wishlist', 'external.bundle', 'external.dlc',
     'external.goty', 'external.exchangeRates', 'external.augmentedRates'
   ]);
-  const fullReleaseDir = path.join(root, 'quantumultx/steam-family/releases/0.2.1');
+  const fullReleaseDir = path.join(root, 'quantumultx/steam-family/releases/0.2.2');
   for (const name of ['injector.js', 'runtime-asset.js', 'bridge.js', 'proxy.js', 'asset-asset.js', 'core.js']) {
     assert.equal(fs.existsSync(path.join(fullReleaseDir, name)), true, `${name} must be published`);
   }
@@ -46,7 +46,7 @@ function runTemporaryBuild(temporaryRoot) {
 
 function snapshotPublishedFiles(temporaryRoot) {
   const publishedRoot = path.join(temporaryRoot, 'quantumultx/steam-family');
-  const releaseRoot = path.join(publishedRoot, 'releases/0.2.1');
+  const releaseRoot = path.join(publishedRoot, 'releases/0.2.2');
   return Object.fromEntries([
     'injector.js',
     'runtime-asset.js',
@@ -124,8 +124,8 @@ test('runtime sources consume metadata through generated tokens', () => {
 
 test('build emits a self-consistent release and stable snippets', () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(releaseDir, 'manifest.json'), 'utf8'));
-  assert.equal(manifest.release, '0.2.1');
-  assert.equal(manifest.coreVersion, '2.05');
+  assert.equal(manifest.release, '0.2.2');
+  assert.equal(manifest.coreVersion, '2.06');
   assert.equal(manifest.schema, 1);
   assert.equal(manifest.indexSchema, 1);
   assert.equal(manifest.preferenceNamespace, 'kaaaaai.steam-family-qx');
@@ -139,9 +139,9 @@ test('build emits a self-consistent release and stable snippets', () => {
   const canonical = fs.readFileSync(path.join(root, 'quantumultx/steam-family/steam-family.snippet'), 'utf8');
   const compatible = fs.readFileSync(path.join(root, 'quantumultx/steam-family/steam-family-poc.snippet'), 'utf8');
   assert.equal(compatible, canonical);
-  assert.match(canonical, /releases\/0\.2\.1\/injector\.js/);
-  assert.match(canonical, /script-echo-response .*releases\/0\.2\.1\/runtime-asset\.js/);
-  assert.match(canonical, /script-echo-response .*releases\/0\.2\.1\/bridge\.js/);
+  assert.match(canonical, /releases\/0\.2\.2\/injector\.js/);
+  assert.match(canonical, /script-echo-response .*releases\/0\.2\.2\/runtime-asset\.js/);
+  assert.match(canonical, /script-echo-response .*releases\/0\.2\.2\/bridge\.js/);
 });
 
 test('a published release cannot be overwritten with different bytes under the same version', () => {

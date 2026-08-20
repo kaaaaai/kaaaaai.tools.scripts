@@ -78,7 +78,7 @@
     var badge = document.createElement('div');
     badge.id = 'fa-qx-diagnostic';
     badge.style.cssText = 'position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:2147483647;pointer-events:none;padding:6px 8px;border-radius:6px;background:#1b1b1b;color:#fff;font:12px/1.3 -apple-system,BlinkMacSystemFont,sans-serif;';
-    badge.textContent = 'FA QX __FA_RELEASE__ · runtime ' + (runtimeLoaded ? '✓' : '✕') + ' · bridge ' + (errorCode ? '✕' : '✓') + (api.coreState === 'ready' ? ' · core ' + CORE_VERSION + ' ✓' : '') + (errorCode ? ' · ' + errorCode : '');
+    badge.textContent = 'FA QX __FA_RELEASE__ · runtime ' + (runtimeLoaded ? '✓' : '✕') + ' · bridge ' + (errorCode ? '✕' : '✓') + (api.coreState === 'ready' ? ' · core ' + CORE_VERSION + ' ✓ · nav ' + (api.navState === 'ready' ? '✓' : '…') : '') + (errorCode ? ' · ' + errorCode : '');
     document.documentElement.appendChild(badge);
   }
 
@@ -174,7 +174,13 @@
       .then(function () { api.coreState = 'ready'; api.coreVersion = CORE_VERSION; });
   }
 
-  var api = { release: '__FA_RELEASE__', buildId: '__FA_BUILD_ID__', coreVersion: null, coreState: 'idle', state: 'starting', bridge: bridge, ready: null };
+  function reportNavigation(state) {
+    if (state !== 'ready') return;
+    api.navState = state;
+    if (api.state === 'ready') renderDiagnostic(api.config, null, true);
+  }
+
+  var api = { release: '__FA_RELEASE__', buildId: '__FA_BUILD_ID__', coreVersion: null, coreState: 'idle', navState: 'pending', state: 'starting', bridge: bridge, reportNavigation: reportNavigation, ready: null };
   window.__FA_QX__ = api;
   if (!handshakeValid) {
     api.state = 'error';

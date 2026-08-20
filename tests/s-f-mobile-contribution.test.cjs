@@ -59,6 +59,14 @@ test('finds the Steam App wishlist tab when its React top bar is not a semantic 
   assert.equal(faFindTopWishlistLink(document, 420).id, 'top');
 });
 
+test('finds the Steam App wishlist tab when React renders it without a link', () => {
+  const { faFindTopWishlistLink } = loadTopNavigationHelpers();
+  const { document } = parseHTML('<div class="react-topbar"><div id="menu" role="button">菜单</div><div id="top" role="button"><span>愿望单</span><span>33</span></div><div role="button">钱包（¥ 27.48）</div></div>');
+  setRect(document.querySelector('#top'), 290);
+  setRect(document.querySelector('#top span'), 290);
+  assert.equal(faFindTopWishlistLink(document, 420).id, 'top');
+});
+
 test('finds the compact Steam App logo bar when wishlist navigation is absent', () => {
   const { faFindTopSteamLogoLink } = loadTopNavigationHelpers();
   const { document } = parseHTML('<main><a id="promo" href="/"><span>STEAM FEST</span></a></main><div class="compact-topbar"><a id="logo" href="/"><img alt="STEAM"></a></div>');

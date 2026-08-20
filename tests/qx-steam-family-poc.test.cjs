@@ -6,7 +6,7 @@ const { runQx } = require('./helpers/run-qx-script.cjs');
 
 const root = path.resolve(__dirname, '..');
 const steamFamilyDir = path.join(root, 'quantumultx/steam-family');
-const releaseDir = path.join(steamFamilyDir, 'releases/0.2.1');
+const releaseDir = path.join(steamFamilyDir, 'releases/0.2.2');
 const rawPrefix = 'https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/';
 const compatibilitySnippetUrl = `${rawPrefix}quantumultx/steam-family/steam-family-poc.snippet`;
 const compatibilityResourceLine = `${compatibilitySnippetUrl}, tag=Steam家庭库POC, update-interval=86400, opt-parser=false, enabled=true`;
@@ -22,7 +22,7 @@ test('compatibility snippet remains byte-identical to the canonical production s
   const compatibility = fs.readFileSync(path.join(steamFamilyDir, 'steam-family-poc.snippet'), 'utf8');
   const canonical = fs.readFileSync(path.join(steamFamilyDir, 'steam-family.snippet'), 'utf8');
   assert.equal(compatibility, canonical);
-  assert.match(compatibility, /releases\/0\.2\.1\/injector\.js/);
+  assert.match(compatibility, /releases\/0\.2\.2\/injector\.js/);
 });
 
 test('installed compatibility snippet URL remains documented exactly', () => {
@@ -33,7 +33,7 @@ test('installed compatibility snippet URL remains documented exactly', () => {
 test('production injector injects its external runtime without the obsolete POC badge', () => {
   const injected = runProductionInjector('<!doctype html><html><body>Steam</body></html>');
   assert.match(injected, /data-fa-qx-bootstrap="[0-9a-f]{12}"/);
-  assert.match(injected, /\/fa-qx\/v1\/runtime\.js\?release=0\.2\.1&build=[0-9a-f]{12}/);
+  assert.match(injected, /\/fa-qx\/v1\/runtime\.js\?release=0\.2\.2&build=[0-9a-f]{12}/);
   assert.doesNotMatch(injected, /fa-qx-poc|FA QX · HTML ✓ · JS/);
 });
 
