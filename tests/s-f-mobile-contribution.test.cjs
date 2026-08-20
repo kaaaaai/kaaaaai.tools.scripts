@@ -85,11 +85,10 @@ test('rejects a broad page container as a Steam App navigation row', () => {
   assert.equal(faFindTopNavigationPlacement(document.querySelector('#wish'), 420), null);
 });
 
-test('styles the Steam App family entry inline with a polished fallback', () => {
+test('keeps the Steam App inline family entry compact', () => {
   const { faStyleTopNavigationEntry } = loadTopNavigationHelpers();
-  const { document } = parseHTML('<a id="inline"></a><a id="fallback"></a>');
+  const { document } = parseHTML('<a id="inline"></a>');
   const inline = document.querySelector('#inline');
-  const fallback = document.querySelector('#fallback');
 
   faStyleTopNavigationEntry(inline, 'inline');
   assert.equal(inline.classList.contains('fa-family-nav-inline'), true);
@@ -97,15 +96,46 @@ test('styles the Steam App family entry inline with a polished fallback', () => 
   assert.equal(inline.style.whiteSpace, 'nowrap');
   assert.equal(inline.style.display, 'inline-flex');
 
-  faStyleTopNavigationEntry(fallback, 'fallback');
-  assert.equal(fallback.classList.contains('fa-family-nav-fallback'), true);
-  assert.equal(fallback.style.minHeight, '44px');
-  assert.equal(fallback.style.borderRadius, '999px');
-  assert.equal(fallback.style.alignSelf, 'center');
-
   const source = readSource();
   assert.match(source, />家庭库<span class="fa-menu-count"/);
   assert.doesNotMatch(source, /<\/span>我的家庭库<span class="fa-menu-count"/);
+});
+
+test('styles the fallback as a flat Steam secondary navigation bar', () => {
+  const { faStyleTopNavigationEntry } = loadTopNavigationHelpers();
+  const { document } = parseHTML('<a id="entry"><span class="fa-family-nav-icon"></span>家庭库<span class="fa-menu-count">386</span></a>');
+  const entry = document.querySelector('#entry');
+  faStyleTopNavigationEntry(entry, 'fallback');
+
+  assert.equal(entry.getAttribute('data-fa-nav-mode'), 'fallback');
+  assert.equal(entry.style.width, '100%');
+  assert.equal(entry.style.minHeight, '48px');
+  assert.equal(entry.style.justifyContent, 'flex-start');
+  assert.equal(entry.style.padding, '0 20px');
+  assert.equal(entry.style.background, '#171d25');
+  assert.equal(entry.style.borderRadius, '0');
+  assert.equal(entry.style.boxShadow, 'none');
+  assert.equal(entry.querySelector('.fa-family-nav-icon').style.color, '#66c0f4');
+  assert.equal(entry.querySelector('.fa-family-nav-icon').style.marginTop, '0');
+  assert.equal(entry.querySelector('.fa-menu-count').style.fontSize, '12px');
+  assert.equal(entry.querySelector('.fa-menu-count').style.color, '#8f98a0');
+});
+
+test('shows Steam blue press feedback on the fallback navigation bar', () => {
+  const { faStyleTopNavigationEntry } = loadTopNavigationHelpers();
+  const { document } = parseHTML('<a id="entry"><span class="fa-family-nav-icon"></span>家庭库<span class="fa-menu-count">386</span></a>');
+  const entry = document.querySelector('#entry');
+  const icon = entry.querySelector('.fa-family-nav-icon');
+  faStyleTopNavigationEntry(entry, 'fallback');
+
+  entry.dispatchEvent(new document.defaultView.Event('pointerdown'));
+  assert.equal(entry.style.color, '#1a9fff');
+  assert.equal(icon.style.color, '#1a9fff');
+
+  entry.dispatchEvent(new document.defaultView.Event('pointerup'));
+  assert.equal(entry.style.color, '#dcdedf');
+  assert.equal(icon.style.color, '#66c0f4');
+  assert.equal(entry.getAttribute('data-fa-nav-press-bound'), '1');
 });
 
 test('finds the compact Steam App logo bar when wishlist navigation is absent', () => {

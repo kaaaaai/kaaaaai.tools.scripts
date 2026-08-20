@@ -555,36 +555,66 @@ function faFindTopNavigationPlacement(wishlist, maxTop) {
     return null;
 }
 
+function faSetTopNavigationPressed(entry, pressed) {
+    if (!entry || !entry.style) return;
+    var fallback = entry.getAttribute('data-fa-nav-mode') === 'fallback';
+    entry.style.color = pressed ? '#1a9fff' : (fallback ? '#dcdedf' : 'inherit');
+    var icon = entry.querySelector && entry.querySelector('.fa-family-nav-icon');
+    if (icon && icon.style) icon.style.color = pressed ? '#1a9fff' : (fallback ? '#66c0f4' : 'currentColor');
+}
+
 function faStyleTopNavigationEntry(entry, mode) {
     if (!entry || !entry.style) return;
     var inline = mode === 'inline';
+    entry.setAttribute('data-fa-nav-mode', inline ? 'inline' : 'fallback');
     if (entry.classList) {
         entry.classList.remove('fa-family-nav-inline', 'fa-family-nav-fallback');
         entry.classList.add(inline ? 'fa-family-nav-inline' : 'fa-family-nav-fallback');
     }
-    entry.style.display = 'inline-flex';
+    entry.style.display = inline ? 'inline-flex' : 'flex';
     entry.style.alignItems = 'center';
-    entry.style.justifyContent = 'center';
+    entry.style.justifyContent = inline ? 'center' : 'flex-start';
     entry.style.flexDirection = 'row';
     entry.style.flexShrink = inline ? '1' : '0';
-    entry.style.gap = '5px';
-    entry.style.minHeight = '44px';
+    entry.style.gap = inline ? '5px' : '6px';
+    entry.style.minHeight = inline ? '44px' : '48px';
     entry.style.boxSizing = 'border-box';
     entry.style.whiteSpace = 'nowrap';
     entry.style.cursor = 'pointer';
-    entry.style.color = 'inherit';
+    entry.style.color = inline ? 'inherit' : '#dcdedf';
     entry.style.textDecoration = 'none';
     entry.style.fontSize = '14px';
     entry.style.fontWeight = '400';
     entry.style.lineHeight = '1.2';
-    entry.style.padding = inline ? '0 7px' : '0 14px';
-    entry.style.width = inline ? 'auto' : 'fit-content';
-    entry.style.maxWidth = inline ? '100%' : 'calc(100% - 32px)';
-    entry.style.margin = inline ? '0' : '6px auto';
-    entry.style.alignSelf = inline ? 'auto' : 'center';
-    entry.style.border = inline ? '0' : '1px solid rgba(255,255,255,.14)';
-    entry.style.borderRadius = inline ? '0' : '999px';
-    entry.style.background = inline ? 'transparent' : 'rgba(255,255,255,.06)';
+    entry.style.padding = inline ? '0 7px' : '0 20px';
+    entry.style.width = inline ? 'auto' : '100%';
+    entry.style.maxWidth = '100%';
+    entry.style.margin = '0';
+    entry.style.alignSelf = inline ? 'auto' : 'stretch';
+    entry.style.border = '0';
+    entry.style.borderTop = inline ? '0' : '1px solid rgba(255,255,255,.06)';
+    entry.style.borderBottom = inline ? '0' : '1px solid rgba(0,0,0,.35)';
+    entry.style.borderRadius = '0';
+    entry.style.background = inline ? 'transparent' : '#171d25';
+    entry.style.boxShadow = 'none';
+    var icon = entry.querySelector && entry.querySelector('.fa-family-nav-icon');
+    if (icon && icon.style) {
+        icon.style.width = '16px';
+        icon.style.marginTop = inline ? '3px' : '0';
+        icon.style.color = inline ? 'currentColor' : '#66c0f4';
+    }
+    var count = entry.querySelector && entry.querySelector('.fa-menu-count');
+    if (count && count.style) {
+        count.style.fontSize = inline ? '10px' : '12px';
+        count.style.color = inline ? '#dcdedf' : '#8f98a0';
+    }
+    if (entry.addEventListener && entry.getAttribute('data-fa-nav-press-bound') !== '1') {
+        entry.setAttribute('data-fa-nav-press-bound', '1');
+        entry.addEventListener('pointerdown', function () { faSetTopNavigationPressed(entry, true); });
+        entry.addEventListener('pointerup', function () { faSetTopNavigationPressed(entry, false); });
+        entry.addEventListener('pointercancel', function () { faSetTopNavigationPressed(entry, false); });
+        entry.addEventListener('pointerleave', function () { faSetTopNavigationPressed(entry, false); });
+    }
 }
 
 function faFindTopSteamLogoLink(root, maxTop) {
@@ -1588,8 +1618,8 @@ function faEnrichAppTypes(appIds) {
         }
         window.faUpdateMenuBadge = updateMenuBadge;
 
-        setting_btn.innerHTML = `<span style="display:flex; width:16px;margin-top:3px"><svg viewBox="0 0 24 24" fill="none"><path d="M7.81998 15.3333C6.2349 16.4298 5.14521 18.1062 4.78665 20H1.33331V15.3333C1.33331 14.0956 1.82498 12.9086 2.70015 12.0335C3.57532 11.1583 4.7623 10.6666 5.99998 10.6666C6.27492 10.6673 6.54929 10.6918 6.81998 10.74C6.71508 11.163 6.66357 11.5975 6.66665 12.0333C6.66944 13.2316 7.07572 14.3941 7.81998 15.3333ZM5.99998 8.69995C6.59332 8.69995 7.17334 8.52401 7.66669 8.19436C8.16004 7.86472 8.54456 7.39618 8.77162 6.848C8.99868 6.29982 9.05809 5.69662 8.94234 5.11468C8.82658 4.53274 8.54086 3.99819 8.1213 3.57863C7.70174 3.15907 7.16719 2.87335 6.58525 2.7576C6.00331 2.64184 5.40011 2.70125 4.85193 2.92831C4.30375 3.15538 3.83522 3.53989 3.50557 4.03324C3.17593 4.52659 2.99998 5.10661 2.99998 5.69995C2.9991 6.09416 3.0761 6.48467 3.22655 6.84904C3.377 7.21342 3.59795 7.54448 3.8767 7.82323C4.15545 8.10198 4.48652 8.32293 4.85089 8.47338C5.21526 8.62383 5.60577 8.70083 5.99998 8.69995ZM18 8.69995C18.5933 8.69995 19.1733 8.52401 19.6667 8.19436C20.16 7.86472 20.5446 7.39618 20.7716 6.848C20.9987 6.29982 21.0581 5.69662 20.9423 5.11468C20.8266 4.53274 20.5409 3.99819 20.1213 3.57863C19.7017 3.15907 19.1672 2.87335 18.5853 2.7576C18.0033 2.64184 17.4001 2.70125 16.8519 2.92831C16.3038 3.15538 15.8352 3.53989 15.5056 4.03324C15.1759 4.52659 15 5.10661 15 5.69995C14.9991 6.09416 15.0761 6.48467 15.2266 6.84904C15.377 7.21342 15.5979 7.54448 15.8767 7.82323C16.1554 8.10198 16.4865 8.32293 16.8509 8.47338C17.2153 8.62383 17.6058 8.70083 18 8.69995ZM21.3333 12.0666C20.896 11.6293 20.3761 11.2833 19.8038 11.0487C19.2316 10.814 18.6184 10.6955 18 10.7C17.725 10.7006 17.4507 10.7251 17.18 10.7733C17.2822 11.1855 17.3336 11.6086 17.3333 12.0333C17.338 13.243 16.9313 14.4185 16.18 15.3666C17.7651 16.4631 18.8547 18.1396 19.2133 20.0333H22.6666V15.3666C22.6756 14.1337 22.1963 12.9473 21.3333 12.0666Z" fill="currentColor"></path><path d="M12 14.7C12.5274 14.7 13.043 14.5436 13.4815 14.2506C13.92 13.9576 14.2618 13.5411 14.4637 13.0539C14.6655 12.5666 14.7183 12.0304 14.6154 11.5131C14.5125 10.9958 14.2585 10.5207 13.8856 10.1477C13.5127 9.77481 13.0375 9.52083 12.5202 9.41794C12.0029 9.31505 11.4668 9.36785 10.9795 9.56969C10.4922 9.77152 10.0757 10.1133 9.78273 10.5518C9.48971 10.9904 9.33331 11.5059 9.33331 12.0334C9.33331 12.7406 9.61426 13.4189 10.1144 13.919C10.6145 14.4191 11.2927 14.7 12 14.7ZM12 16.7C10.7623 16.7 9.57532 17.1917 8.70015 18.0669C7.82498 18.942 7.33331 20.129 7.33331 21.3667H16.6666C16.6666 20.129 16.175 18.942 15.2998 18.0669C14.4246 17.1917 13.2377 16.7 12 16.7Z" fill="currentColor"></path></svg>
-        </span>家庭库<span class="fa-menu-count" style="color: #dcdedf;font-size: 10px;">${saves.familyGameList.GameList.length}</span>`
+        setting_btn.innerHTML = `<span class="fa-family-nav-icon" style="display:flex; width:16px;margin-top:3px"><svg viewBox="0 0 24 24" fill="none"><path d="M7.81998 15.3333C6.2349 16.4298 5.14521 18.1062 4.78665 20H1.33331V15.3333C1.33331 14.0956 1.82498 12.9086 2.70015 12.0335C3.57532 11.1583 4.7623 10.6666 5.99998 10.6666C6.27492 10.6673 6.54929 10.6918 6.81998 10.74C6.71508 11.163 6.66357 11.5975 6.66665 12.0333C6.66944 13.2316 7.07572 14.3941 7.81998 15.3333ZM5.99998 8.69995C6.59332 8.69995 7.17334 8.52401 7.66669 8.19436C8.16004 7.86472 8.54456 7.39618 8.77162 6.848C8.99868 6.29982 9.05809 5.69662 8.94234 5.11468C8.82658 4.53274 8.54086 3.99819 8.1213 3.57863C7.70174 3.15907 7.16719 2.87335 6.58525 2.7576C6.00331 2.64184 5.40011 2.70125 4.85193 2.92831C4.30375 3.15538 3.83522 3.53989 3.50557 4.03324C3.17593 4.52659 2.99998 5.10661 2.99998 5.69995C2.9991 6.09416 3.0761 6.48467 3.22655 6.84904C3.377 7.21342 3.59795 7.54448 3.8767 7.82323C4.15545 8.10198 4.48652 8.32293 4.85089 8.47338C5.21526 8.62383 5.60577 8.70083 5.99998 8.69995ZM18 8.69995C18.5933 8.69995 19.1733 8.52401 19.6667 8.19436C20.16 7.86472 20.5446 7.39618 20.7716 6.848C20.9987 6.29982 21.0581 5.69662 20.9423 5.11468C20.8266 4.53274 20.5409 3.99819 20.1213 3.57863C19.7017 3.15907 19.1672 2.87335 18.5853 2.7576C18.0033 2.64184 17.4001 2.70125 16.8519 2.92831C16.3038 3.15538 15.8352 3.53989 15.5056 4.03324C15.1759 4.52659 15 5.10661 15 5.69995C14.9991 6.09416 15.0761 6.48467 15.2266 6.84904C15.377 7.21342 15.5979 7.54448 15.8767 7.82323C16.1554 8.10198 16.4865 8.32293 16.8509 8.47338C17.2153 8.62383 17.6058 8.70083 18 8.69995ZM21.3333 12.0666C20.896 11.6293 20.3761 11.2833 19.8038 11.0487C19.2316 10.814 18.6184 10.6955 18 10.7C17.725 10.7006 17.4507 10.7251 17.18 10.7733C17.2822 11.1855 17.3336 11.6086 17.3333 12.0333C17.338 13.243 16.9313 14.4185 16.18 15.3666C17.7651 16.4631 18.8547 18.1396 19.2133 20.0333H22.6666V15.3666C22.6756 14.1337 22.1963 12.9473 21.3333 12.0666Z" fill="currentColor"></path><path d="M12 14.7C12.5274 14.7 13.043 14.5436 13.4815 14.2506C13.92 13.9576 14.2618 13.5411 14.4637 13.0539C14.6655 12.5666 14.7183 12.0304 14.6154 11.5131C14.5125 10.9958 14.2585 10.5207 13.8856 10.1477C13.5127 9.77481 13.0375 9.52083 12.5202 9.41794C12.0029 9.31505 11.4668 9.36785 10.9795 9.56969C10.4922 9.77152 10.0757 10.1133 9.78273 10.5518C9.48971 10.9904 9.33331 11.5059 9.33331 12.0334C9.33331 12.7406 9.61426 13.4189 10.1144 13.919C10.6145 14.4191 11.2927 14.7 12 14.7ZM12 16.7C10.7623 16.7 9.57532 17.1917 8.70015 18.0669C7.82498 18.942 7.33331 20.129 7.33331 21.3667H16.6666C16.6666 20.129 16.175 18.942 15.2998 18.0669C14.4246 17.1917 13.2377 16.7 12 16.7Z" fill="currentColor"></path></svg>
+        </span>家庭库<span class="fa-menu-count" style="color: #8f98a0;font-size: 10px;">${saves.familyGameList.GameList.length}</span>`
         setting_btn.onclick = btnonclick
         // v1.90 修复:愿望单页面延迟 2s 注入所有 header DOM 修改,避免 React 水合冲突(error #418)
         //   水合期间修改 DOM → React 检测不匹配 → 整页重渲染 → 脚本注入的元素(含标记)被清除
