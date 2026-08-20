@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const releaseDir = path.resolve(__dirname, '..', 'quantumultx/steam-family/releases/0.2.3');
+const releaseDir = path.resolve(__dirname, '..', 'quantumultx/steam-family/releases/0.2.4');
 const source = () => fs.readFileSync(path.join(releaseDir, 'asset-asset.js'), 'utf8');
 
 function call(url, upstream) {
@@ -21,14 +21,14 @@ function call(url, upstream) {
 }
 
 test('asset service maps virtual names to fixed pinned sources', async () => {
-  const chart = await call('https://store.steampowered.com/fa-qx/v1/asset/chart.js?release=0.2.3');
+  const chart = await call('https://store.steampowered.com/fa-qx/v1/asset/chart.js?release=0.2.4');
   assert.equal(chart.result.status, 'HTTP/1.1 200 OK');
   assert.equal(chart.requests.length, 1);
   assert.equal(chart.requests[0].url, 'https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.js');
   assert.equal(chart.result.body, 'window.AssetLoaded=true;');
 
   const core = await call('https://keylol.com/fa-qx/v1/asset/core.js');
-  assert.equal(core.requests[0].url, 'https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/quantumultx/steam-family/releases/0.2.3/core.js');
+  assert.equal(core.requests[0].url, 'https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/quantumultx/steam-family/releases/0.2.4/core.js');
 });
 
 test('asset service rejects unconfigured hosts and unknown names without an upstream request', async () => {

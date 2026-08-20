@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { runQx } = require('./helpers/run-qx-script.cjs');
 
-const releaseDir = path.resolve(__dirname, '..', 'quantumultx/steam-family/releases/0.2.3');
+const releaseDir = path.resolve(__dirname, '..', 'quantumultx/steam-family/releases/0.2.4');
 const bridge = () => fs.readFileSync(path.join(releaseDir, 'bridge.js'), 'utf8');
 const releaseManifest = () => JSON.parse(fs.readFileSync(path.join(releaseDir, 'manifest.json'), 'utf8'));
 const preferences = new Map();
