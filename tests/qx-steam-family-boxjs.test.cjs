@@ -44,10 +44,10 @@ test('public install documentation uses the BoxJS-compatible JSON transport', ()
   }
 });
 
-test('public QX documentation advertises the installed v2.06 core and complete health badge', () => {
+test('public QX documentation advertises the installed v2.07 core and complete health badge', () => {
   const readme = fs.readFileSync(path.resolve(__dirname, '..', 'quantumultx/steam-family/README.md'), 'utf8');
-  assert.match(readme, /complete Steam Family v2\.06 core/i);
-  assert.match(readme, /\| Core \| `2\.06` \|/);
-  assert.match(readme, /FA QX 0\.2\.2 · runtime ✓ · bridge ✓ · core 2\.06 ✓ · nav ✓/);
+  assert.match(readme, /complete Steam Family v2\.07 core/i);
+  assert.match(readme, /\| Core \| `2\.07` \|/);
+  assert.match(readme, /FA QX 0\.2\.3 · runtime ✓ · bridge ✓ · core 2\.07 ✓ · nav ✓/);
   assert.doesNotMatch(readme, /does \*\*not\*\* yet scan|Core \| `not installed`/i);
 });

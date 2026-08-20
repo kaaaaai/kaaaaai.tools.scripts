@@ -47,5 +47,26 @@
       "sha256": "7787ffb1d1f88ef6698385b478cc34c47311a5c52a0c1214005414e7f5fd4da8"
     }
   },
-  "bridgeTimeoutMs": 8000
+  "bridgeTimeoutMs": 8000,
+  "buildId": "37f621b79f5e",
+  "assets": {
+    "injector.js": {
+      "sha256": "be9276ab2d5a349277867bf5579dfb3dbdce9152f99d7f9804ccc4c076a44ff3"
+    },
+    "runtime-asset.js": {
+      "sha256": "51bdbad09332d48833701853dfa71b0e4aba347fd715df4f70106482202a0670"
+    },
+    "bridge.js": {
+      "sha256": "a4ca3aebce23976bfbdbf35792ed28b80ebb5691a8d8ebd75e56cb0a6f68b564"
+    },
+    "proxy.js": {
+      "sha256": "c2959063450af52ab169183f2eec57aec2250741f8546c23af718ca579a4b1aa"
+    },
+    "asset-asset.js": {
+      "sha256": "24e072958b941524078b77e580d6d04bf934fa1c2ff77bf9c5303b6b6a7d4763"
+    },
+    "core.js": {
+      "sha256": "ca073812731ff27689ee9e34d40ce3d71d15ce88465678a06bd01848a9b0e905"
+    }
+  }
 }

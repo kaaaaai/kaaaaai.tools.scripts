@@ -8,7 +8,7 @@
       "id": "kaaaaai.steam-family-qx",
       "name": "Steam 家庭库 QX",
       "descs_html": [
-        "设置 Steam 家庭库 QX 0.2.2 / 完整核心 2.06。完整家庭库数据保存在 Steam 网页 IndexedDB，不保存在 BoxJS。",
+        "设置 Steam 家庭库 QX 0.2.3 / 完整核心 2.07。完整家庭库数据保存在 Steam 网页 IndexedDB，不保存在 BoxJS。",
         "维护命令为递增编号；页面确认处理后会更新对应 acknowledgement。"
       ],
       "keys": [
