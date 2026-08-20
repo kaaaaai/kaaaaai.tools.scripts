@@ -523,6 +523,38 @@ function faFindTopWishlistLink(root, maxTop) {
     return best;
 }
 
+function faTopNavigationHasLabel(root, pattern) {
+    if (!root || !root.querySelectorAll) return false;
+    var elements = root.querySelectorAll('a,button,[role="button"],[tabindex],span,div');
+    for (var i = 0; i < elements.length; i++) {
+        var text = String(elements[i].textContent || '').replace(/\s+/g, ' ').trim();
+        if (pattern.test(text)) return true;
+    }
+    return false;
+}
+
+function faFindTopNavigationPlacement(wishlist, maxTop) {
+    if (!wishlist) return null;
+    var candidate = wishlist.parentElement;
+    for (var depth = 0; candidate && depth < 7; depth++, candidate = candidate.parentElement) {
+        var text = String(candidate.textContent || '').replace(/\s+/g, ' ').trim();
+        if (!text || text.length > 120) continue;
+        var hasMenu = faTopNavigationHasLabel(candidate, /^(?:菜单|menu)$/i);
+        var hasWishlist = faTopNavigationHasLabel(candidate, /^(?:愿望单|wishlist)(?:\s*\d+)?$/i);
+        var hasWallet = faTopNavigationHasLabel(candidate, /^(?:钱包|wallet)(?:\s*[（(].*)?$/i);
+        if (!hasMenu || !hasWishlist || !hasWallet) continue;
+        var rect = null;
+        try { rect = candidate.getBoundingClientRect(); } catch (_) {}
+        var top = rect && Number.isFinite(rect.top) ? rect.top : Infinity;
+        var height = rect && Number.isFinite(rect.height) ? rect.height : Infinity;
+        if (top < 0 || top > maxTop || height > 140) continue;
+        var before = wishlist;
+        while (before.parentElement && before.parentElement !== candidate) before = before.parentElement;
+        if (before.parentElement === candidate) return { row: candidate, before: before };
+    }
+    return null;
+}
+
 function faFindTopSteamLogoLink(root, maxTop) {
     var candidates = root && root.querySelectorAll ? root.querySelectorAll('a[href],button,[role="button"],img[alt],img[src]') : [];
     var best = null;

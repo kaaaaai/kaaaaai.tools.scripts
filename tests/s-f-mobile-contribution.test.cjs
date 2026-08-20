@@ -67,6 +67,24 @@ test('finds the Steam App wishlist tab when React renders it without a link', ()
   assert.equal(faFindTopWishlistLink(document, 420).id, 'top');
 });
 
+test('resolves the smallest Steam App navigation row and direct wishlist child', () => {
+  const { faFindTopNavigationPlacement } = loadTopNavigationHelpers();
+  const { document } = parseHTML('<div id="shell"><div id="row"><div role="button">菜单</div><div id="wish-wrap"><span id="wish">愿望单</span></div><div role="button">钱包（¥ 27.48）</div></div><main>精选和推荐</main></div>');
+  setRect(document.querySelector('#row'), 270);
+  setRect(document.querySelector('#wish'), 290);
+  const placement = faFindTopNavigationPlacement(document.querySelector('#wish'), 420);
+  assert.equal(placement.row.id, 'row');
+  assert.equal(placement.before.id, 'wish-wrap');
+});
+
+test('rejects a broad page container as a Steam App navigation row', () => {
+  const { faFindTopNavigationPlacement } = loadTopNavigationHelpers();
+  const { document } = parseHTML('<div id="page"><span id="wish">愿望单</span><main>菜单 钱包 精选和推荐</main></div>');
+  setRect(document.querySelector('#page'), 0);
+  setRect(document.querySelector('#wish'), 290);
+  assert.equal(faFindTopNavigationPlacement(document.querySelector('#wish'), 420), null);
+});
+
 test('finds the compact Steam App logo bar when wishlist navigation is absent', () => {
   const { faFindTopSteamLogoLink } = loadTopNavigationHelpers();
   const { document } = parseHTML('<main><a id="promo" href="/"><span>STEAM FEST</span></a></main><div class="compact-topbar"><a id="logo" href="/"><img alt="STEAM"></a></div>');
