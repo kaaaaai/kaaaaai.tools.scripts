@@ -85,6 +85,29 @@ test('rejects a broad page container as a Steam App navigation row', () => {
   assert.equal(faFindTopNavigationPlacement(document.querySelector('#wish'), 420), null);
 });
 
+test('styles the Steam App family entry inline with a polished fallback', () => {
+  const { faStyleTopNavigationEntry } = loadTopNavigationHelpers();
+  const { document } = parseHTML('<a id="inline"></a><a id="fallback"></a>');
+  const inline = document.querySelector('#inline');
+  const fallback = document.querySelector('#fallback');
+
+  faStyleTopNavigationEntry(inline, 'inline');
+  assert.equal(inline.classList.contains('fa-family-nav-inline'), true);
+  assert.equal(inline.style.minHeight, '44px');
+  assert.equal(inline.style.whiteSpace, 'nowrap');
+  assert.equal(inline.style.display, 'inline-flex');
+
+  faStyleTopNavigationEntry(fallback, 'fallback');
+  assert.equal(fallback.classList.contains('fa-family-nav-fallback'), true);
+  assert.equal(fallback.style.minHeight, '44px');
+  assert.equal(fallback.style.borderRadius, '999px');
+  assert.equal(fallback.style.alignSelf, 'center');
+
+  const source = readSource();
+  assert.match(source, />家庭库<span class="fa-menu-count"/);
+  assert.doesNotMatch(source, /<\/span>我的家庭库<span class="fa-menu-count"/);
+});
+
 test('finds the compact Steam App logo bar when wishlist navigation is absent', () => {
   const { faFindTopSteamLogoLink } = loadTopNavigationHelpers();
   const { document } = parseHTML('<main><a id="promo" href="/"><span>STEAM FEST</span></a></main><div class="compact-topbar"><a id="logo" href="/"><img alt="STEAM"></a></div>');
