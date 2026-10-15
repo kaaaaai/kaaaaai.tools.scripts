@@ -1,0 +1,15 @@
+#!name=Steam 家庭库（Surge）
+#!desc=将仓库中 QX 0.2.4 运行时适配为 Surge 模块；网页功能需实际验证。
+#!system=ios
+
+[Script]
+Steam-runtime = type=http-request,pattern=^https:\/\/(?:store\.steampowered\.com|keylol\.com|steamdb\.keylol\.com)\/fa-qx\/v1\/runtime\.js(?:\?.*)?$,requires-body=0,timeout=30,script-path=https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/surge/steam-family/runtime-asset.js
+Steam-bridge = type=http-request,pattern=^https:\/\/(?:store\.steampowered\.com|keylol\.com|steamdb\.keylol\.com)\/fa-qx\/v1\/bridge(?:\?.*)?$,requires-body=0,timeout=30,script-path=https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/surge/steam-family/bridge.js
+Steam-proxy = type=http-request,pattern=^https:\/\/store\.steampowered\.com\/fa-qx\/v1\/proxy$,requires-body=1,timeout=30,script-path=https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/surge/steam-family/proxy.js
+Steam-assets = type=http-request,pattern=^https:\/\/(?:store\.steampowered\.com|keylol\.com|steamdb\.keylol\.com)\/fa-qx\/v1\/asset\/(?:chart|pinyin|app-detail|core)\.js(?:\?.*)?$,requires-body=0,timeout=30,script-path=https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/surge/steam-family/asset-asset.js
+Steam-inject-store = type=http-response,pattern=^https:\/\/store\.steampowered\.com\/(?:\?.*)?$,requires-body=1,timeout=30,script-path=https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/surge/steam-family/injector.js
+Steam-inject-keylol = type=http-response,pattern=^https:\/\/keylol\.com\/(?:\?.*)?$,requires-body=1,timeout=30,script-path=https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/surge/steam-family/injector.js
+Steam-inject-tooltip = type=http-response,pattern=^https:\/\/steamdb\.keylol\.com\/tooltip(?:[\/?#].*)?$,requires-body=1,timeout=30,script-path=https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/surge/steam-family/injector.js
+
+[MITM]
+hostname = %APPEND% store.steampowered.com, keylol.com, steamdb.keylol.com
