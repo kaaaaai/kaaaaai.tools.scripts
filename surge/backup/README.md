@@ -20,7 +20,7 @@
 | `Zhihu.Adblock.js`、`baiduCloud.adblock.js` | 从旧模块还原的两个 `ddgksf2013` Gist 地址均返回 404。 | 知乎有上述功能相近的替代；百度网盘脚本尚无经验证的等效替代。 |
 | `suishouji.js`、`bilibili_json.js`、`redbook_json.js`、`v2ex.js` | 从旧模块还原的 `ddgksf2013` 地址均返回 404。 | 哔哩哔哩有上述替代；其余暂不声称等效。 |
 | `fly.js` | 截图中的 GitLab 地址返回 403，并非 404。 | 权限或访问限制原因未确定；未备份。 |
-| `Goodbility.Vip1`、`BuyiTunesVip`、`RevenueCatVip` | 截图显示 404。作者 README 中的新域名链接现在返回资源索引 HTML，而非 JavaScript。 | 未找到可验证的等效脚本，未备份。 |
+| `Goodbility.Vip1`、`BuyiTunesVip`、`RevenueCatVip` | 已从公开旧模块还原完整 `ddgksf2013` Gist 地址并逐一复核，三条均返回 404。作者 README 中的新域名链接现在返回资源索引 HTML，而非 JavaScript。 | 未找到可验证的等效脚本，未备份。 |
 | `myBlockAds`、`weibo`、`smzdm_remove_ads`、`Bilibili_开屏去广告`、`知乎_处理用户信息` | 截图显示 404；因原 URL 被截断，未逐条复核完整地址。 | 通用广告、开屏广告和知乎有上述功能相近的替代；其他功能待原模块文件核对。 |
 
 `blackmatrix7` 文件的原始许可见 [LICENSE](blackmatrix7-ads-20261015/LICENSE)；`Biliverse` 文件的原始许可见 [LICENSE](bilibili-adblock-v0.7.3/LICENSE)。所有第三方文件保留其原作者信息。这里没有上传个人订阅或私有配置。
