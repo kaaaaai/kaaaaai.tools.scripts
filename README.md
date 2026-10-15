@@ -6,6 +6,8 @@
 
 截图中失效资源的核查记录及许可允许的模块备份见 [Surge 规则备份](surge/backup/README.md)。
 
+Quantumult X 失效重写的替代地址与校验记录见 [QX 替代记录](quantumultx/replacements/README.md)。
+
 ## Steam 家庭库分析
 
 浏览器脚本：[安装 steam-family-game-analysis](https://raw.githubusercontent.com/kaaaaai/kaaaaai.tools.scripts/main/steam-family-game-analysis.user.js)
